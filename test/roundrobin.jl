@@ -1,9 +1,63 @@
 using JuMP
 using CPLEX
 
+"""
+Simple Round Robin tournament instance.
+
+n : number of teams
+match_cost[i, j, k] : cost of match between teams i and j in round k
+
+The objective is to assign each possible match between two teams to a round 
+so that the total cost is minimized.
+"""
 struct SRRInstance
     n :: Int
     match_cost :: Array{Float64, 3}
+end
+
+function is_compatible(match :: Tuple{Int, Int}, round :: Int, solution :: Array{Int, 3})
+    #Check if any team of this match is already playing in this round in solution
+    for i in 1:size(solution, 1)
+        j = match[1]
+        k = match[2]
+        if solution[min(i, j), max(i, j), round] == 1 || solution[min(i, k), max(i, k), round] == 1
+            return false
+        end
+    end
+    return true
+end
+
+#Generate an initial solution by putting matches in any round as long as
+#each team plays exactly once in each round
+function initial_solution(instance :: SRRInstance)
+    # List all possible matches
+    ms = matches(instance)
+    # Generate empty solution
+    solution = zeros(Int, instance.n, instance.n, instance.n - 1)
+    # Now assign each match to the first round where it is compatible
+    for (i, j) in ms
+        for k in 1:num_rounds(instance)
+            if is_compatible((i, j), k, solution)
+                solution[min(i, j), max(i, j), k] = 1
+                break
+            end
+        end
+    end
+    return solution
+end
+
+function linearize_solution(solution :: Array{Int, 3}, instance :: SRRInstance)
+    linear_sol = Int[]
+    for r in 1:num_rounds(instance)
+        for i in 1:instance.n
+            for j in 1:instance.n
+                if i < j
+                    push!(linear_sol, solution[i, j, r])
+                end
+            end
+        end
+    end
+    return linear_sol
 end
 
 #File format for instances:
@@ -46,6 +100,7 @@ function matches(i :: Int, instance :: SRRInstance)
     return matches
 end
 
+num_matches(instance :: SRRInstance) = (instance.n * (instance.n - 1)) / 2
 num_rounds(instance :: SRRInstance) = instance.n - 1
 
 function is_valid(instance :: SRRInstance)
