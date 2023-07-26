@@ -313,6 +313,9 @@ end
 function extract_objective(obj :: JuMP.AffExpr, x :: Vector{JuMP.VariableRef})
     c = zeros(Int, length(x))
     for j in 1:length(x)
+        if !haskey(obj.terms, x[j])
+            continue
+        end
         coef = obj.terms[x[j]]
         c[j] = Int(round(coef))
     end
@@ -429,7 +432,7 @@ function IPInstance(model::JuMP.Model)
         end
     end
     #Build upper bound vector
-    u = fill(nothing, size(A, 2))
+    u :: Vector{Union{Int, Nothing}} = fill(nothing, size(A, 2))
     for (var, ub) in upper_bounds
         u[var] = ub
     end

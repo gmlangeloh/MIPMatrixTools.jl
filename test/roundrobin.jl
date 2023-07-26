@@ -57,7 +57,7 @@ function basic_formulation(instance :: SRRInstance)
     model = Model(CPLEX.Optimizer)
     M = matches(instance)
     nrnds = num_rounds(instance)
-    @variable(model, x[M, 1:nrnds], Bin)
+    @variable(model, x[M, 1:nrnds] >= 0, Int)
     @objective(model, Min, sum(instance.match_cost[i, j, k] * x[(i, j), k] for (i, j) in M, k in 1:nrnds))
     # Every match is played exactly once
     @constraint(model, [(i, j) in M], sum(x[(i, j), k] for k in 1:nrnds) == 1)
