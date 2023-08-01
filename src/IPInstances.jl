@@ -310,14 +310,28 @@ function extract_bound(
     return x_index, bound_value
 end
 
+function extract_objective(
+    objective_list :: Vector, 
+    x :: Vector{JuMP.VariableRef}
+)
+    #Make a matrix whose rows are the coefficients of each objective function
+    rows = Matrix{Int}[]
+    for obj in objective_list
+        c = extract_objective(obj, x)
+        push!(rows, c)
+    end
+    C = foldl(vcat, rows)
+    return C
+end
+
 function extract_objective(obj :: JuMP.AffExpr, x :: Vector{JuMP.VariableRef})
-    c = zeros(Int, length(x))
+    c = zeros(Int, 1, length(x))
     for j in 1:length(x)
         if !haskey(obj.terms, x[j])
             continue
         end
         coef = obj.terms[x[j]]
-        c[j] = Int(round(coef))
+        c[1, j] = round(Int, coef)
     end
     return c
 end
@@ -326,16 +340,16 @@ function extract_objective(obj::JuMP.VariableRef, x::Vector{JuMP.VariableRef})
     # JuMP represents the objective function as a single VariableRef when
     #possible.
     # This case needs to be treated separately here.
-    c = zeros(Int, length(x))
+    c = zeros(Int, 1, length(x))
     index = obj.index.value
-    c[index] = 1
+    c[1, index] = 1
     return c
 end
 
 function extract_objective(
     model :: JuMP.Model,
     x :: Vector{JuMP.VariableRef}
-) :: Vector{Int}
+) :: Matrix{Int}
     c = extract_objective(objective_function(model), x)
     if objective_sense(model) == MOI.MAX_SENSE
         c = -c
@@ -437,13 +451,12 @@ function IPInstance(model::JuMP.Model)
         u[var] = ub
     end
     #Extend c to the slack variables
-    for _ in 1:(size(A, 2) - length(c))
-        push!(c, 0)
-    end
+    num_slacks = size(A, 2) - size(c, 2)
+    Zs = zeros(Int, size(c, 1), num_slacks)
+    c = hcat(c, Zs)
     #Build the IPInstance object. The matrices here are already normalized,
     #so no additional normalization is necessary
-    return IPInstance(A, b, reshape(c, (1, length(c))), u,
-                      apply_normalization=false)
+    return IPInstance(A, b, c, u, apply_normalization=false)
 end
 
 function integer_objective(
