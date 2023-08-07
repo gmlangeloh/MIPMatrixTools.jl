@@ -108,7 +108,7 @@ function fiber_solution(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
     m, n = size(A)
     mat_A = matrix(AlgebraInt, A)
     mat_b = matrix(AlgebraInt, m, 1, b)
-    x = solve(mat_A, mat_b)
+    x = AbstractAlgebra.solve(mat_A, mat_b)
     return Int.(reshape(Array(x), n))
 end
 
@@ -470,6 +470,26 @@ function solve(instance :: IPInstance)
         instance.A, instance.b, instance.C, instance.u,
         nonnegative_variables(instance), Int
     )
+end
+
+"""
+    lift_partial_solution(solution :: Vector{Int}, instance :: IPInstance)
+
+    Return a feasible solution to the full problem given by `instance` from a 
+    feasible solution to the first few variables, if possible.
+
+    This is done by solving an integral linear system.
+"""
+function lift_partial_solution(solution :: Vector{Int}, instance :: IPInstance)
+    partial_A = instance.A[:, 1:length(solution)]
+    partial_b = partial_A * solution
+    remaining_b = instance.b - partial_b
+    remaining_A = instance.A[:, (length(solution)+1):end]
+    A = matrix(AlgebraInt, remaining_A)
+    b = matrix(AlgebraInt, length(remaining_b), 1, remaining_b)
+    x = AbstractAlgebra.solve(A, b)
+    remaining_sol = Int.(reshape(Array(x), n))
+    return [solution; remaining_sol]
 end
 
 function integer_objective(
