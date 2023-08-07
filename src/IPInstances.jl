@@ -459,6 +459,19 @@ function IPInstance(model::JuMP.Model)
     return IPInstance(A, b, c, u, apply_normalization=false)
 end
 
+"""
+    solve(instance :: IPInstance)
+
+    Return the optimal solution to this IPInstance. This solution is computed
+    using a traditional IP solver.
+"""
+function solve(instance :: IPInstance)
+    return SolverTools.solve(
+        instance.A, instance.b, instance.C, instance.u,
+        nonnegative_variables(instance), Int
+    )
+end
+
 function integer_objective(
     instance :: IPInstance
 ) :: Array{Int}

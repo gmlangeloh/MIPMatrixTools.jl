@@ -172,6 +172,19 @@ function jump_model(
     return model, x, constraints
 end
 
+function solve(
+    A::Matrix{Int},
+    b::Vector{Int},
+    C::Array{Float64},
+    u::Vector{<: Union{Int, Nothing}},
+    nonnegative::Vector{Bool},
+    var_type::DataType
+)::Vector{Float64}
+    model, x, _ = jump_model(A, b, C, u, nonnegative, var_type)
+    optimize!(model)
+    return value.(x)
+end
+
 """
     relaxation_model(A :: Matrix{Int}, b :: Vector{Int}, C :: Array{Float64}, u :: Vector{Union{Int, Nothing}}, nonnegative :: Vector{Bool})
 
