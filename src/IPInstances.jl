@@ -480,14 +480,19 @@ end
 
     This is done by solving an integral linear system.
 """
-function lift_partial_solution(solution :: Vector{Int}, instance :: IPInstance)
+function lift_partial_solution(
+    solution :: Vector{Int}, 
+    rhs :: Vector{Int},
+    instance :: IPInstance
+)
     partial_A = instance.A[:, 1:length(solution)]
     partial_b = partial_A * solution
-    remaining_b = instance.b - partial_b
+    remaining_b = rhs - partial_b
     remaining_A = instance.A[:, (length(solution)+1):end]
     A = matrix(AlgebraInt, remaining_A)
     b = matrix(AlgebraInt, length(remaining_b), 1, remaining_b)
     x = AbstractAlgebra.solve(A, b)
+    n = size(A, 2)
     remaining_sol = Int.(reshape(Array(x), n))
     return [solution; remaining_sol]
 end
