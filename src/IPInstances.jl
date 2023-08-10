@@ -715,7 +715,7 @@ function bounded_variables(
     n = size(A, 2)
     bounded = Bool[]
     for i in 1:n
-        bnd = SolverTools.is_very_bounded(i, A, nonnegative)
+        bnd = SolverTools.is_bounded(i, A, nonnegative)
         push!(bounded, bnd)
     end
     return bounded

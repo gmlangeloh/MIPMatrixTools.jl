@@ -230,28 +230,15 @@ function unboundedness_ip_model(
 end
 
 """
-    is_bounded(i :: Int, model :: JuMP.Model, x :: Vector{JuMP.VariableRef})
+    is_bounded(
+    i :: Int,
+    A :: Matrix{Int},
+    nonnegative :: Vector{Bool}
+)::Bool
 
-Return true iff maximizing x_i in model is bounded (has an optimal solution).
-
-It is assumed that the given model is (primal) feasible.
+Return true iff maximizing x_i in Ax = b is bounded for all feasible b.
 """
 function is_bounded(
-    i::Int,
-    model::JuMP.Model,
-    x::Vector{VariableRef}
-)::Bool
-    @objective(model, Max, x[i])
-    optimize!(model)
-    #Note that this only guarantees unboundedness if the model
-    #is feasible.
-    if termination_status(model) != MOI.DUAL_INFEASIBLE
-        return true
-    end
-    return false
-end
-
-function is_very_bounded(
     i :: Int,
     A :: Matrix{Int},
     nonnegative :: Vector{Bool}
