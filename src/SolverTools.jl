@@ -251,6 +251,49 @@ function is_bounded(
     return false
 end
 
+function is_very_bounded(
+    i :: Int,
+    A :: Matrix{Int},
+    nonnegative :: Vector{Bool}
+)::Bool
+    m, n = size(A)
+    #Find some feasible RHS
+    model = Model(GENERAL_SOLVER.Optimizer)
+    set_silent(model)
+    @variable(model, x[1:n])
+    @variable(model, y[1:m])
+    for k in 1:n
+        if nonnegative[k]
+            @constraint(model, x[k] >= 0)
+        end
+    end
+    @objective(model, Min, 0)
+    for k in 1:m
+        @constraint(model, A[k, :]' * x == y[k])
+    end
+    optimize!(model)
+    b = value.(y)
+    #Check boundedness for the RHS found above
+    #Bounded for some feasible RHS = bounded for all feasible RHS
+    opt_model = Model(GENERAL_SOLVER.Optimizer)
+    set_silent(opt_model)
+    @variable(opt_model, z[1:n])
+    for k in 1:n
+        if nonnegative[k]
+            @constraint(opt_model, z[k] >= 0)
+        end
+    end
+    @objective(opt_model, Max, z[i])
+    for k in 1:m
+        @constraint(opt_model, A[k, :]' * z == b[k])
+    end
+    optimize!(opt_model)
+    if termination_status(opt_model) == MOI.DUAL_INFEASIBLE
+        return false
+    end
+    return true
+end
+
 """
     set_jump_objective!(model :: JuMP.Model, direction :: Symbol, c :: Vector{T}, x :: Vector{JuMP.VariableRef}) where {T <: Real}
 

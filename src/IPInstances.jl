@@ -190,7 +190,7 @@ struct IPInstance
         model, model_vars, model_cons = SolverTools.relaxation_model(A, b, C, u, nonnegative)
         #Compute a permutation of variables of the given instance such that
         #vars appear in order: bounded, non-negative, unrestricted
-        bounded = bounded_variables(model, model_vars, model_cons, b)
+        bounded = bounded_variables(A, nonnegative)
         permutation, bounded_end, nonnegative_end = compute_permutation(bounded, nonnegative)
         inverse_perm = invperm(permutation)
         #Permute columns of problem data
@@ -708,28 +708,16 @@ end
 # Functions to deal with bounded and non-negative variables
 #
 
-"""
-    bounded_variables(model :: JuMP.Model, model_vars :: Vector{JuMP.VariableRef}) :: Vector{Bool}
-
-Return a boolean array indicating whether a given variable is bounded.
-
-A variable x_i is bounded for the given model iff max {x_i | x feasible for model} is bounded for all feasible RHS.
-"""
 function bounded_variables(
-    model :: JuMP.Model,
-    model_vars :: Vector{JuMP.VariableRef},
-    model_cons :: Vector{JuMP.ConstraintRef},
-    b :: Vector{Int}
+    A :: Matrix{Int},
+    nonnegative :: Vector{Bool}
 ) :: Vector{Bool}
-    n = length(model_vars)
-    bounded = zeros(Bool, n)
-    #Set the RHS to 0 to check boundedness for all RHS, by duality
-    set_normalized_rhs.(model_cons, 0)
+    n = size(A, 2)
+    bounded = Bool[]
     for i in 1:n
-        bounded[i] = SolverTools.is_bounded(i, model, model_vars)
+        bnd = SolverTools.is_very_bounded(i, A, nonnegative)
+        push!(bounded, bnd)
     end
-    #Set the RHS back to its original value
-    set_normalized_rhs.(model_cons, b)
     return bounded
 end
 
