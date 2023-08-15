@@ -5,17 +5,15 @@ using LinearAlgebra: I
 function has_slacks(A :: Matrix{Int}) :: Bool
     m, n = size(A)
     found_slack = fill(false, m)
-    slack_indices = Int[]
     for i in 1:m
-        for j in (m+1):n
-            if A[i, j] == 1
+        for j in 1:n
+            if A[i, j] == 1 && all(A[k, j] == 0 for k in 1:m if k != i)
                 found_slack[i] = true
-                push!(slack_indices, j)
                 break
             end
         end
     end
-    return all(found_slack) && (length(slack_indices) == length(unique(slack_indices)))
+    return all(found_slack)
 end
 
 function isincluded(
