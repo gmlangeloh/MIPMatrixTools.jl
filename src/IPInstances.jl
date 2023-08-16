@@ -138,6 +138,7 @@ struct IPInstance
     nonnegative_end :: Int #index of last non-negative variable
     permutation :: Vector{Int}
     inverse_permutation :: Vector{Int}
+    binaries :: Vector{Bool}
 
     #Problem metadata
     orig_cons :: Int #constraints before normalization
@@ -193,6 +194,7 @@ struct IPInstance
         bounded = SolverTools.bounded_variables(A, nonnegative)
         permutation, bounded_end, nonnegative_end = compute_permutation(bounded, nonnegative)
         inverse_perm = invperm(permutation)
+        binaries = [ u[i] == 1 for i in 1:length(u)]
         #Permute columns of problem data
         A = A[:, permutation]
         C = C[:, permutation]
@@ -209,7 +211,7 @@ struct IPInstance
         #Create the normalized instance
         new(A, b, C, u,
             bounded_end, nonnegative_end, permutation, inverse_perm,
-            m, n, new_m, new_n, true,
+            binaries, m, n, new_m, new_n, true,
             model, model_vars, model_cons,
             basis, rnk, fiber_sol, bounded
         )
