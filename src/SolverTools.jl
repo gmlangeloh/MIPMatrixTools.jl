@@ -229,22 +229,11 @@ function unboundedness_ip_model(
     return model, vars, constrs
 end
 
-"""
-    is_bounded(
-    i :: Int,
-    A :: Matrix{Int},
-    nonnegative :: Vector{Bool}
-)::Bool
-
-Return true iff maximizing x_i in Ax = b is bounded for all feasible b.
-"""
-function is_bounded(
-    i :: Int,
-    A :: Matrix{Int},
-    nonnegative :: Vector{Bool}
-)::Bool
+function bounded_variables(A :: Matrix{Int}, nonnegative :: Vector{Bool})
     m, n = size(A)
-    #Find some feasible RHS
+    bounded = Bool[]
+    #Find some feasible RHS. This does not depend on the variable
+    #we are trying to bound.
     model = Model(GENERAL_SOLVER.Optimizer)
     set_silent(model)
     @variable(model, x[1:n])
@@ -262,6 +251,8 @@ function is_bounded(
     b = value.(y)
     #Check boundedness for the RHS found above
     #Bounded for some feasible RHS = bounded for all feasible RHS
+    #This has to be done for each variable separately, but we can reuse
+    #the JuMP LP model for efficiency.
     opt_model = Model(GENERAL_SOLVER.Optimizer)
     set_silent(opt_model)
     @variable(opt_model, z[1:n])
@@ -270,15 +261,19 @@ function is_bounded(
             @constraint(opt_model, z[k] >= 0)
         end
     end
-    @objective(opt_model, Max, z[i])
     for k in 1:m
         @constraint(opt_model, A[k, :]' * z == b[k])
     end
-    optimize!(opt_model)
-    if termination_status(opt_model) == MOI.DUAL_INFEASIBLE
-        return false
+    for i in 1:n
+        bnd = true
+        @objective(opt_model, Max, z[i])
+        optimize!(opt_model)
+        if termination_status(opt_model) == MOI.DUAL_INFEASIBLE
+            bnd = false
+        end
+        push!(bounded, bnd)
     end
-    return true
+    return bounded
 end
 
 """

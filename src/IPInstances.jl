@@ -190,7 +190,7 @@ struct IPInstance
         model, model_vars, model_cons = SolverTools.relaxation_model(A, b, C, u, nonnegative)
         #Compute a permutation of variables of the given instance such that
         #vars appear in order: bounded, non-negative, unrestricted
-        bounded = bounded_variables(A, nonnegative)
+        bounded = SolverTools.bounded_variables(A, nonnegative)
         permutation, bounded_end, nonnegative_end = compute_permutation(bounded, nonnegative)
         inverse_perm = invperm(permutation)
         #Permute columns of problem data
@@ -707,19 +707,6 @@ end
 #
 # Functions to deal with bounded and non-negative variables
 #
-
-function bounded_variables(
-    A :: Matrix{Int},
-    nonnegative :: Vector{Bool}
-) :: Vector{Bool}
-    n = size(A, 2)
-    bounded = Bool[]
-    for i in 1:n
-        bnd = SolverTools.is_bounded(i, A, nonnegative)
-        push!(bounded, bnd)
-    end
-    return bounded
-end
 
 """
     is_nonnegative(i :: Int, instance :: IPInstance) :: Bool
