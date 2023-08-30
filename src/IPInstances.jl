@@ -580,12 +580,20 @@ function group_relaxation(
 end
 
 function lattice_basis_projection(
-    instance :: IPInstance
+    instance :: IPInstance,
+    var_selection :: Symbol = :Any
 )
     # TODO: I need to guarantee the selected columns are linearly
     #independent!!!
-    lattice_rank = instance.n - instance.rank
-    return instance.lattice_basis[:, 1:lattice_rank]
+    if var_selection == :Any
+        lattice_rank = instance.n - instance.rank
+        vars = 1:lattice_rank
+    elseif var_selection == :SimplexBasis
+        vars = SolverTools.optimal_basis!(instance.model)
+    else
+        @assert false
+    end
+    return instance.lattice_basis[:, vars]
 end
 
 """
