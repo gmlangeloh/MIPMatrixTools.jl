@@ -402,6 +402,18 @@ function bounded_objective(A::Matrix{Int}, i::Int, sigma::Vector{Int})
     error("This problem was supposed to be feasible.")
 end
 
+"""
+    optimal_weight_vector(
+    A :: Matrix{Int}, 
+    b :: Vector{Int}, 
+    unbounded :: Vector{Bool}
+) :: Tuple{Vector{Float64}, Float64}
+
+    Find an extreme ray of the dual cone of Ax = 0 whenever possible.
+
+    See Malkin's thesis, page 83 for a description of the use of this
+    idea in Gröbner basis truncation.
+"""
 function optimal_weight_vector(
     A :: Matrix{Int}, 
     b :: Vector{Int}, 
@@ -426,8 +438,9 @@ function optimal_weight_vector(
     if termination_status(model) == MOI.OPTIMAL
         return value.(x), objective_value(model)
     end
-    @show termination_status(model)
-    error("Optimal weight vector is infeasible.")
+    #If no truncation vector is found, simply return 0 to
+    #disable weight truncation.
+    return zeros(Float64, n), 0.0
 end
 
 end
