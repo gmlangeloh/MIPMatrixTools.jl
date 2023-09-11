@@ -268,7 +268,8 @@ function bounded_variables(A :: Matrix{Int}, nonnegative :: Vector{Bool})
         bnd = true
         @objective(opt_model, Max, z[i])
         optimize!(opt_model)
-        if termination_status(opt_model) == MOI.DUAL_INFEASIBLE
+        if termination_status(opt_model) == MOI.DUAL_INFEASIBLE ||
+            termination_status(opt_model) == MOI.INFEASIBLE_OR_UNBOUNDED
             bnd = false
         end
         push!(bounded, bnd)
