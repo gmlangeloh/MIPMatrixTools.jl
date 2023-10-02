@@ -361,7 +361,7 @@ function extract_objective(
     return c
 end
 
-function IPInstance(model::JuMP.Model)
+function IPInstance(model::JuMP.Model; infer_binary :: Bool = true)
     #Extract A, b, c from the model.
     n = num_variables(model)
     x = all_variables(model)
@@ -384,6 +384,9 @@ function IPInstance(model::JuMP.Model)
                     #Explicit integrality constraints are unnecessary
                     continue
                 elseif t2 <: MOI.ZeroOne
+                    if !infer_binary
+                        continue
+                    end
                     #Binary constraints for variables added as upper bounds
                     push!(upper_bounds, (constraint.index.value, 1))
                     continue
