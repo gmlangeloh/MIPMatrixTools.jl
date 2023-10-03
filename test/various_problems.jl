@@ -75,7 +75,7 @@ function test_lap()
     lap_model, _ = generate_lap(5)
     lap = IPInstance(lap_model, infer_binary=false)
     gb = groebner(lap)
-    @show size(gb) gb
+    @show size(gb)
     gb2 = groebner_basis(lap)
     @show size(gb2)
     lap

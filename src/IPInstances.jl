@@ -589,19 +589,21 @@ function lattice_basis_projection(
     if var_selection == :Any
         lattice_rank = instance.n - instance.rank
         li_cols = Int[]
+        sigma = Int[] #Complement of li_cols
         #Greedy approach: pick a column and then check for linear independence.
         #For simplicity, I can check this by looking at whether the rank increased
         L = instance.lattice_basis
         j = 1
-        while length(li_cols) < lattice_rank && j <= instance.n
+        while j <= instance.n
             push!(li_cols, j)
-            j += 1
             #Check linear independence
             li_basis = L[:, li_cols]
             if rank(li_basis) < length(li_cols)
                 #If not linearly independent, remove the last column
                 pop!(li_cols)
+                push!(sigma, j)
             end
+            j += 1
         end
     elseif var_selection == :SimplexBasis
         # TODO: I need a Vector{Int} instead of Vector{Bool} in vars
@@ -609,7 +611,7 @@ function lattice_basis_projection(
     else
         @assert false
     end
-    return instance.lattice_basis[:, li_cols]
+    return instance.lattice_basis[:, li_cols], sigma
 end
 
 """
@@ -637,10 +639,10 @@ Lift `v` from an (extended) group relaxation to the full problem given by
 """
 function lift_vector(
     v :: Vector{Int},
+    projected_basis :: Generic.MatSpaceElem{Int},
     instance :: IPInstance
 ) :: Vector{Int}
-    #Find a lifted vector to full variables
-    col_basis = transpose(lattice_basis_projection(instance))
+    col_basis = transpose(projected_basis)
     coefs = AbstractAlgebra.solve(col_basis, matrix(AlgebraInt, length(v), 1, v))
     full_col_basis = transpose(instance.lattice_basis)
     res = full_col_basis * coefs

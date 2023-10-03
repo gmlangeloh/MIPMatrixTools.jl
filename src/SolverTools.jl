@@ -24,7 +24,11 @@ function optimal_basis!(
     model::JuMP.Model
 )::Vector{Bool}
     #TODO: I don't get the right amount of basic variables.
-    #This is probably due to the presolver eliminating some rows / columns
+    #I thought this might be due to presolving, but that's not the case
+    set_attribute(model, "CPXPARAM_Preprocessing_Presolve", 0)
+    set_attribute(model, "CPXPARAM_Preprocessing_Relax", 0)
+    set_attribute(model, "CPXPARAM_Simplex_Display", 2)
+    unset_silent(model)
     optimize!(model)
     x = all_variables(model)
     n = length(x)
@@ -35,6 +39,10 @@ function optimal_basis!(
             basis[i] = true
         end
     end
+    set_attribute(model, "CPXPARAM_Preprocessing_Presolve", 1)
+    set_attribute(model, "CPXPARAM_Preprocessing_Relax", 1)
+    set_attribute(model, "CPXPARAM_Simplex_Display", 1)
+    set_silent(model)
     return basis
 end
 
