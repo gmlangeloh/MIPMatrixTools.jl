@@ -586,17 +586,30 @@ function lattice_basis_projection(
     instance :: IPInstance,
     var_selection :: Symbol = :Any
 )
-    # TODO: I need to guarantee the selected columns are linearly
-    #independent!!!
     if var_selection == :Any
         lattice_rank = instance.n - instance.rank
-        vars = 1:lattice_rank
+        li_cols = Int[]
+        #Greedy approach: pick a column and then check for linear independence.
+        #For simplicity, I can check this by looking at whether the rank increased
+        L = instance.lattice_basis
+        j = 1
+        while length(li_cols) < lattice_rank && j <= instance.n
+            push!(li_cols, j)
+            j += 1
+            #Check linear independence
+            li_basis = L[:, li_cols]
+            if rank(li_basis) < length(li_cols)
+                #If not linearly independent, remove the last column
+                pop!(li_cols)
+            end
+        end
     elseif var_selection == :SimplexBasis
-        vars = SolverTools.optimal_basis!(instance.model)
+        # TODO: I need a Vector{Int} instead of Vector{Bool} in vars
+        li_cols = SolverTools.optimal_basis!(instance.model)
     else
         @assert false
     end
-    return instance.lattice_basis[:, vars]
+    return instance.lattice_basis[:, li_cols]
 end
 
 """

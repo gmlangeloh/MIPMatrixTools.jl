@@ -23,6 +23,8 @@ This function calls `optimize!` on `model` in order to be self-contained.
 function optimal_basis!(
     model::JuMP.Model
 )::Vector{Bool}
+    #TODO: I don't get the right amount of basic variables.
+    #This is probably due to the presolver eliminating some rows / columns
     optimize!(model)
     x = all_variables(model)
     n = length(x)
