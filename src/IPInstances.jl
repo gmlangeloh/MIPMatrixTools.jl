@@ -779,23 +779,25 @@ function nonnegative_vars(
 end
 
 """
-    unboundedness_proof(instance :: IPInstance, nonnegative :: Vector{Bool}, i :: Int) :: Vector{Int}
+    unboundedness_proof(
+    instance :: IPInstance,
+    i :: Int
+) :: Vector{Int}
 
 Return a vector `u` in kernel(`instance.A`) proving that the variable of
 index `i` is unbounded.
 """
 function unboundedness_proof(
     instance :: IPInstance,
-    nonnegative :: Vector{Bool},
     i :: Int
 ) :: Vector{Int}
     @assert !is_bounded(i, instance)
-    model, vars, _ = SolverTools.unboundedness_ip_model(instance.A, nonnegative, i)
+    model, vars, _ = SolverTools.unboundedness_ip_model(
+        instance.A, nonnegative_variables(instance), i
+    )
     JuMP.optimize!(model)
     if JuMP.termination_status(model) != JuMP.MOI.OPTIMAL
         return Int[]
-        #error("Unboundedness model should be feasible, status: ",
-        #      JuMP.termination_status(model))
     end
     u = Int.(round.(JuMP.value.(vars)))
     return u
