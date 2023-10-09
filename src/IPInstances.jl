@@ -1,6 +1,6 @@
 module IPInstances
 
-export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight
+export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector
 
 import LinearAlgebra: I
 using AbstractAlgebra
@@ -565,6 +565,45 @@ function nonnegativity_relaxation(
     )
 end
 
+function complement(
+    s :: Vector{Int},
+    n :: Int
+) :: Vector{Int}
+    comp = Int[]
+    for i in 1:n
+        if i in s
+            continue
+        end
+        push!(comp, i)
+    end
+    return comp
+end
+
+function projection(
+    instance :: IPInstance,
+    away_from :: Vector{Int}
+) :: IPInstance
+    #Only project away from variables with relaxed non-negativity 
+    @assert all(s > instance.nonnegative_end for s in away_from)
+    #Find variables to project onto
+    onto = complement(away_from, instance.n)
+    #Project onto the variables in onto
+    #TODO: Fix this. Just projecting the constraint matrix doesn't work.
+    return IPInstance(
+        instance.A[:, onto], instance.b, instance.C[:, onto], instance.u[onto],
+        apply_normalization=false,
+        invert_objective=false
+    )
+end
+
+function project_vector(
+    v :: Vector{Int},
+    away_from :: Vector{Int}
+)
+    onto = complement(away_from, length(v))
+    return v[onto]
+end
+
 """
     group_relaxation(instance :: IPInstance) :: IPInstance
 
@@ -587,7 +626,6 @@ function lattice_basis_projection(
     var_selection :: Symbol = :Any
 )
     if var_selection == :Any
-        lattice_rank = instance.n - instance.rank
         li_cols = Int[]
         sigma = Int[] #Complement of li_cols
         #Greedy approach: pick a column and then check for linear independence.
@@ -673,33 +711,22 @@ function nonnegative_data_only(
     return vars_nonneg && a_nonneg && b_nonneg
 end
 
-"""
-    update_objective!(instance :: IPInstance, i :: Int)
-
-Update the objective function of `instance` to maximizing its `i`-th variable
-(= minimizing -x_i)
-"""
 function update_objective!(
     instance :: IPInstance,
-    i :: Int
-)
-    for j in 1:instance.n
-        if j == i
-            instance.C[1, j] = -1
-        else
-            instance.C[1, j] = 0
-        end
-    end
-end
-
-function update_objective!(
-    instance :: IPInstance,
-    i :: Int,
+    j :: Int,
     sigma :: Vector{Int}
 )
-    c = SolverTools.bounded_objective(instance.A, i, sigma)
+    c = SolverTools.bounded_objective(instance.A, j, sigma)
     #We take the negative here to normalize the problem to minimization form
     instance.C[1, :] = -c
+    #To ease debugging: check whether c has the specified properties, that is,
+    #1. c[sigma] == 0 and
+    #2. c' * u == -u[i] for all u in the lattice basis
+    @assert iszero(c[sigma])
+    for i in 1:size(instance.lattice_basis, 1)
+        u = reshape(Array(instance.lattice_basis[i, :]), instance.n)
+        @assert abs(c' * u + u[j]) < 1e-6
+    end
 end
 
 #

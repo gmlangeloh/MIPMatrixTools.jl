@@ -77,6 +77,6 @@ function test_lap()
     gb = groebner(lap)
     @show size(gb)
     gb2 = groebner_basis(lap)
-    @show size(gb2)
+    @show length(gb2)
     lap
 end
