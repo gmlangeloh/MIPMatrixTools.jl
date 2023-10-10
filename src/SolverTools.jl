@@ -77,7 +77,12 @@ function is_degenerate(
 end
 
 """
-    optimal_row_span(A :: Matrix{Int}, b :: Vector{Int}, c :: Array{T}) where {T <: Real}
+    optimal_row_span(
+    A::Matrix{Int},
+    b::Vector{Int},
+    C::Array{T},
+    sense::Symbol = :Min
+)::Union{Vector{Float64},Nothing} where {T<:Real}
 
 Compute a vector in the row span of `A` given by `yA` where `y` is the optimal
 solution to the dual of the LP given by `A, b, c`.
@@ -91,7 +96,7 @@ function optimal_row_span(
     b::Vector{Int},
     C::Array{T},
     sense::Symbol = :Min
-)::Union{Vector{Float64},Nothing} where {T<:Real}
+) where {T<:Real}
     m, n = size(A)
     @assert(n == size(C, 2))
     model = Model(GENERAL_SOLVER.Optimizer)
