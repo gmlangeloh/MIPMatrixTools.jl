@@ -199,6 +199,7 @@ struct IPInstance
         A = A[:, permutation]
         C = C[:, permutation]
         u = u[permutation]
+        nonnegative = nonnegative[permutation]
         #Update the JuMP model with the permutation info
         model, model_vars, model_cons = SolverTools.relaxation_model(A, b, C, u, nonnegative)
         #Checks feasibility of the linear relaxation
@@ -669,6 +670,13 @@ function initial_solution(
     return reshape(convert.(Int, Array(x)), size(instance.A, 2))
 end
 
+function linear_relaxation_status(instance :: IPInstance)
+    optimize!(instance.model)
+    println("LINEAR RELAXATION STATUS")
+    @show termination_status(instance.model)
+    write_to_file(instance.model, "model.mps")
+end
+
 """
     lift_vector(v :: Vector{Int}, instance :: IPInstance) :: Vector{Int}
 
@@ -727,6 +735,8 @@ function update_objective!(
         u = reshape(Array(instance.lattice_basis[i, :]), instance.n)
         @assert abs(c' * u + u[j]) < 1e-6
     end
+    #Update the LP model as well
+    SolverTools.set_jump_objective!(instance.model, :Min, instance.C[1, :])
 end
 
 #
