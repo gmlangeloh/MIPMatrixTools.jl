@@ -726,7 +726,7 @@ function update_objective!(
 )
     c = SolverTools.bounded_objective(instance.A, j, sigma)
     #We take the negative here to normalize the problem to minimization form
-    instance.C[1, :] = -c
+    instance.C[1, :] = c
     #To ease debugging: check whether c has the specified properties, that is,
     #1. c[sigma] == 0 and
     #2. c' * u == -u[i] for all u in the lattice basis
