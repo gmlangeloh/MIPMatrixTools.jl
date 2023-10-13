@@ -1,6 +1,6 @@
 module IPInstances
 
-export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector
+export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector, unbounded_variables
 
 import LinearAlgebra: I
 using AbstractAlgebra
@@ -546,6 +546,10 @@ end
 
 function nonnegative_variables(instance :: IPInstance) :: Vector{Bool}
     return [ i <= instance.nonnegative_end for i in 1:instance.n ]
+end
+
+function unbounded_variables(instance :: IPInstance) :: Vector{Bool}
+    return [ i > instance.bounded_end && i <= instance.nonnegative_end for i in 1:instance.n]
 end
 
 """
