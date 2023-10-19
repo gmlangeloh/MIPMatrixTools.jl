@@ -1,4 +1,7 @@
 using JuMP
+using Random
+
+using MIPMatrixTools.GBTools
 
 #Linear assignment problems
 function generate_lap(n :: Int)
@@ -94,6 +97,7 @@ function test_lap(n, reps = 1)
 end
 
 function test_set_cover(n, m, p, reps = 1)
+    Random.seed!(0)
     for rep in 1:reps
         cov_model, _ = generate_set_cover(n, m, p)
         cov = IPInstance(cov_model, infer_binary=true)
@@ -101,13 +105,25 @@ function test_set_cover(n, m, p, reps = 1)
         println("Cover & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
         gb2, tipgbs, _, _, _ = @timed groebner_basis(cov)
         println("Cover & IPGBs & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", length(gb2), " & ", tipgbs)
+        #println("4ti2 GB:")
+        #for i in axes(gb, 1)
+        #    println(gb[i, :])
+        #end
+        #println()
+        #println("IPGBs GB:")
+        #for g in gb2
+        #    println(g)
+        #end
+        #gb3 = GBTools.tovector(gb)
+        #println("4ti2 included in IPGBs? ", GBTools.isincluded(gb3, gb2))
+        #println("IPGBs included in 4ti2? ", GBTools.isincluded(gb2, gb3))
     end
 end
 
 function test_set_packing(n, m, p, reps = 1)
     for rep in 1:reps
         pack_model = generate_set_packing(n, m, p)
-        pack = IPInstance(pack_model, infer_binary=true)
+        pack = IPInstance(pack_model, infer_binary=false)
         gb, t4ti2, _, _, _ = @timed groebner(pack)
         println("Packing & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
         gb2, tipgbs, _, _, _ = @timed groebner_basis(pack)
@@ -115,7 +131,6 @@ function test_set_packing(n, m, p, reps = 1)
     end
 end
 
-using Random
 function compare_4ti2_ipgbs()
     println("Algorithm & Problem & n & m & p & Rep & Vars & GBSize & Time")
     Random.seed!(0)
