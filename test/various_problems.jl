@@ -105,18 +105,6 @@ function test_set_cover(n, m, p, reps = 1)
         println("Cover & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
         gb2, tipgbs, _, _, _ = @timed groebner_basis(cov)
         println("Cover & IPGBs & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", length(gb2), " & ", tipgbs)
-        #println("4ti2 GB:")
-        #for i in axes(gb, 1)
-        #    println(gb[i, :])
-        #end
-        #println()
-        #println("IPGBs GB:")
-        #for g in gb2
-        #    println(g)
-        #end
-        #gb3 = GBTools.tovector(gb)
-        #println("4ti2 included in IPGBs? ", GBTools.isincluded(gb3, gb2))
-        #println("IPGBs included in 4ti2? ", GBTools.isincluded(gb2, gb3))
     end
 end
 

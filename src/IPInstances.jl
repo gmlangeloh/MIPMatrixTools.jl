@@ -619,9 +619,9 @@ of its linear relaxation.
 function group_relaxation(
     instance :: IPInstance
 ) :: IPInstance
-    basis = SolverTools.optimal_basis!(instance.model)
-    nonbasics = [ !variable for variable in basis ]
-    @assert count(basis) == instance.m
+    var_basis, cons_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
+    nonbasics = [ !variable for variable in var_basis ]
+    @assert count(var_basis) + count(cons_basis) == instance.m
     #Keep only the nonnegativity constraints on the non-basic variables
     return nonnegativity_relaxation(instance, nonbasics)
 end
@@ -649,10 +649,37 @@ function lattice_basis_projection(
             j += 1
         end
     elseif var_selection == :SimplexBasis
-        # TODO: I need a Vector{Int} instead of Vector{Bool} in vars
-        li_cols = SolverTools.optimal_basis!(instance.model)
+        #Create some LI basis for the lattice. Start from the non-basic
+        #variables of the optimal solution to the linear relaxation
+        #Then, remove variables until the basis is linearly independent
+        var_basis, _ = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
+        li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
+        sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
+        L = instance.lattice_basis
+        lattice_rank = instance.n - instance.rank
+        li_basis = L[:, li_cols]
+        while lattice_rank < length(li_cols) && length(li_cols) > 0
+            j = length(li_cols)
+            while j >= 1
+                #Check whether removing the j-th column still keeps
+                #rank(li_basis) >= lattice_rank. If so, remove it.
+                #Otherwise, keep searching for j satisfying this property.
+                col = li_cols[j]
+                deleteat!(li_cols, j)
+                li_basis = L[:, li_cols]
+                if rank(li_basis) >= lattice_rank
+                    push!(sigma, col)
+                    break
+                else
+                    #Reinsert in the same place, removing j didn't work
+                    insert!(li_cols, j, col)
+                    j -= 1
+                end
+            end
+            li_basis = L[:, li_cols]
+        end
     else
-        @assert false
+        error("Unknown variable selection method: $var_selection")
     end
     return instance.lattice_basis[:, li_cols], sigma
 end

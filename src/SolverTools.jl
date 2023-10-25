@@ -21,29 +21,30 @@ basic at the optimal solution of `model`.
 This function calls `optimize!` on `model` in order to be self-contained.
 """
 function optimal_basis!(
-    model::JuMP.Model
-)::Vector{Bool}
-    #TODO: I don't get the right amount of basic variables.
-    #I thought this might be due to presolving, but that's not the case
-    set_attribute(model, "CPXPARAM_Preprocessing_Presolve", 0)
-    set_attribute(model, "CPXPARAM_Preprocessing_Relax", 0)
-    set_attribute(model, "CPXPARAM_Simplex_Display", 2)
-    unset_silent(model)
+    model::JuMP.Model,
+    x :: Vector{JuMP.VariableRef},
+    constraints :: Vector{JuMP.ConstraintRef}
+)::Tuple{Vector{Bool},Vector{Bool}}
     optimize!(model)
-    x = all_variables(model)
     n = length(x)
-    basis = fill(false, n)
-    for i in 1:n
-        status = MOI.get(model, MOI.VariableBasisStatus(), x[i])
+    m = length(constraints)
+    var_basis = fill(false, n)
+    cons_basis = fill(false, m)
+    for j in 1:n
+        status = MOI.get(model, MOI.VariableBasisStatus(), x[j])
         if status == MOI.BASIC
-            basis[i] = true
+            var_basis[j] = true
         end
     end
-    set_attribute(model, "CPXPARAM_Preprocessing_Presolve", 1)
-    set_attribute(model, "CPXPARAM_Preprocessing_Relax", 1)
-    set_attribute(model, "CPXPARAM_Simplex_Display", 1)
-    set_silent(model)
-    return basis
+    #Look into the constraints as well. They may be set as basic,
+    #that is, the corresponding slack variables may be basic.
+    for i in 1:m
+        status = MOI.get(model, MOI.ConstraintBasisStatus(), constraints[i])
+        if status == MOI.BASIC
+            cons_basis[i] = true
+        end
+    end
+    return var_basis, cons_basis
 end
 
 """
