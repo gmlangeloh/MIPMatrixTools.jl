@@ -478,6 +478,11 @@ function solve(instance :: IPInstance)
     )
 end
 
+function is_feasible_solution(instance :: IPInstance, solution :: Vector{Int})
+    return instance.A * solution == instance.b && 
+        all(solution[1:instance.nonnegative_end] .>= 0)
+end
+
 """
     lift_partial_solution(solution :: Vector{Int}, instance :: IPInstance)
 
