@@ -1,6 +1,6 @@
 module IPInstances
 
-export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector, unbounded_variables
+export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector, unbounded_variables, is_feasible_solution, add_constraint
 
 import LinearAlgebra: I
 using AbstractAlgebra
@@ -965,6 +965,35 @@ function original_variable_order(
     instance :: IPInstance
 ) :: Vector{Vector{Int}}
     return apply_permutation(vector_set, instance.inverse_permutation)
+end
+
+function add_constraint(
+    instance :: IPInstance, 
+    constraint :: Vector{Int}, 
+    rhs :: Int,
+    sense :: Symbol = :EQ
+) :: IPInstance
+    #Take the constraint matrix, RHS and costs, then add a new slack variable
+    #for the new constraint if it's an inequality
+    A = instance.A
+    b = instance.b
+    C = instance.C
+    u = instance.u
+    new_A = [ A ; constraint' ]
+    new_b = [ b ; rhs ]
+    new_C = C
+    new_u = u
+    if sense == :EQ
+        #No need to add a slack variable 
+    elseif sense == :LT || sense == :GT
+        new_A = [ new_A zeros(Int, size(new_A, 1), 1) ]
+        new_A[end, end] = sense == :LT ? 1 : -1
+        new_C = [ C zeros(Float64, size(C, 1), 1) ]
+        new_u = [ u ; nothing ] #TODO Check whether I want an explicit upper bound
+    else
+        error("Unknown constraint sense: $sense")
+    end
+    return IPInstance(new_A, new_b, new_C, new_u, apply_normalization=false)
 end
 
 #
