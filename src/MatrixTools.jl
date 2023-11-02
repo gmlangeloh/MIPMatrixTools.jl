@@ -1,6 +1,6 @@
 module MatrixTools
 
-export hnf_lattice_basis, fiber_solution, normalize_hnf!, basis_to_uhnf, AlgebraInt
+export hnf_lattice_basis, fiber_solution, normalize_hnf!, basis_to_uhnf, lift_vector
 
 using AbstractAlgebra
 
