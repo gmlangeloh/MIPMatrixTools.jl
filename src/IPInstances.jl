@@ -1,16 +1,17 @@
 module IPInstances
 
-export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector, unbounded_variables, is_feasible_solution, add_constraint
+export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, lift_vector, truncation_weight, projection, project_vector, unbounded_variables, is_feasible_solution, add_constraint, lattice_basis_projection
 
 import LinearAlgebra: I
+
+#TODO: Finish removing dependency on AbstractAlgebra. Use only MatrixTools
 using AbstractAlgebra
 using JuMP
 
 using MIPMatrixTools
 using MIPMatrixTools.GBTools
+using MIPMatrixTools.MatrixTools
 using MIPMatrixTools.SolverTools
-
-const AlgebraInt = AbstractAlgebra.Integers{Int}()
 
 """
     normalize_ip(A :: Matrix{Int}, b :: Vector{Int}, c :: Matrix{T}, u :: Vector{<: Union{Int, Nothing}}, nonnegative :: Vector{Bool}; ...) where {T <: Real}
@@ -71,45 +72,6 @@ function normalize_ip(
     end
     new_nonnegative = [nonnegative; [true for _ in 1:(k+m)]] #slacks are non-negative
     return new_A, new_b, new_C, new_u, new_nonnegative
-end
-
-"""
-    hnf_lattice_basis(A :: Matrix{Int})
-
-    Return a row basis for the lattice ker(A) computed using the Upper
-    Hermite Normal Form. The entries of this basis tend to be smaller than
-    those computed directly from kernel(A).
-"""
-function hnf_lattice_basis(A :: Matrix{Int})
-    m, n = size(A)
-    mat_A = matrix(AlgebraInt, transpose(A))
-    r = rank(mat_A)
-    #Transpose and append identity matrix, so that the lattice basis appears
-    #as the last few rows / columns of the uhnf.
-    tA = hcat(mat_A, identity_matrix(AlgebraInt, n))
-    #tA is a n x (m + n) matrix.
-    #hnf_cohen is often slightly faster than hnf
-    I = identity_matrix(tA, n)
-    #Even though there are apparently no guarantees, running hnf_kb! over 64-bit
-    #ints does work. Running hnf_cohen! here instead doesn't, though.
-    AbstractAlgebra.hnf_kb!(tA, I)
-    #The basis is in the last few rows and columns of H
-    basis = tA[(r+1):n, (m+1):(n+m)]
-    return basis, r #Row basis of the lattice
-end
-
-"""
-    fiber_solution(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
-
-    A solution to Ax = b, that is, an element of the fiber of right-hand side
-    `b` in the lattice ker(A).
-"""
-function fiber_solution(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
-    m, n = size(A)
-    mat_A = matrix(AlgebraInt, A)
-    mat_b = matrix(AlgebraInt, m, 1, b)
-    x = AbstractAlgebra.solve(mat_A, mat_b)
-    return Int.(reshape(Array(x), n))
 end
 
 """
@@ -483,31 +445,6 @@ function is_feasible_solution(instance :: IPInstance, solution :: Vector{Int})
         all(solution[1:instance.nonnegative_end] .>= 0)
 end
 
-"""
-    lift_partial_solution(solution :: Vector{Int}, instance :: IPInstance)
-
-    Return a feasible solution to the full problem given by `instance` from a 
-    feasible solution to the first few variables, if possible.
-
-    This is done by solving an integral linear system.
-"""
-function lift_partial_solution(
-    solution :: Vector{Int}, 
-    rhs :: Vector{Int},
-    instance :: IPInstance
-)
-    partial_A = instance.A[:, 1:length(solution)]
-    partial_b = partial_A * solution
-    remaining_b = rhs - partial_b
-    remaining_A = instance.A[:, (length(solution)+1):end]
-    A = matrix(AlgebraInt, remaining_A)
-    b = matrix(AlgebraInt, length(remaining_b), 1, remaining_b)
-    x = AbstractAlgebra.solve(A, b)
-    n = size(A, 2)
-    remaining_sol = Int.(reshape(Array(x), n))
-    return [solution; remaining_sol]
-end
-
 function integer_objective(
     instance :: IPInstance
 ) :: Array{Int}
@@ -686,24 +623,8 @@ function lattice_basis_projection(
     else
         error("Unknown variable selection method: $var_selection")
     end
-    return instance.lattice_basis[:, li_cols], sigma
-end
-
-"""
-    group_initial_solution(
-    instance :: IPInstance
-) :: Vector{Int}
-
-Return a solution to instance.A == instance.b, dropping the non-negativity
-constraints.
-"""
-function initial_solution(
-    instance :: IPInstance
-) :: Vector{Int}
-    mat_A = matrix(AlgebraInt, instance.A)
-    mat_b = matrix(AlgebraInt, length(instance.b), 1, instance.b)
-    x = AbstractAlgebra.solve(mat_A, mat_b)
-    return reshape(convert.(Int, Array(x)), size(instance.A, 2))
+    basis = instance.lattice_basis[:, li_cols]
+    return basis, basis_to_uhnf(basis), sigma
 end
 
 function linear_relaxation_status(instance :: IPInstance)
@@ -711,24 +632,6 @@ function linear_relaxation_status(instance :: IPInstance)
     println("LINEAR RELAXATION STATUS")
     @show termination_status(instance.model)
     write_to_file(instance.model, "model.mps")
-end
-
-"""
-    lift_vector(v :: Vector{Int}, instance :: IPInstance) :: Vector{Int}
-
-Lift `v` from an (extended) group relaxation to the full problem given by
-`instance`.
-"""
-function lift_vector(
-    v :: Vector{Int},
-    projected_basis :: Generic.MatSpaceElem{Int},
-    instance :: IPInstance
-) :: Vector{Int}
-    col_basis = transpose(projected_basis)
-    coefs = AbstractAlgebra.solve(col_basis, matrix(AlgebraInt, length(v), 1, v))
-    full_col_basis = transpose(instance.lattice_basis)
-    res = full_col_basis * coefs
-    return reshape(Array(res), length(res))
 end
 
 function truncation_weight(
