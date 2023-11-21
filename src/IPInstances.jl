@@ -446,6 +446,10 @@ function is_feasible_solution(instance :: IPInstance, solution :: Vector{Int})
         all(solution[1:instance.nonnegative_end] .>= 0)
 end
 
+function extend_feasible_solution(instance :: IPInstance, solution :: Vector{Int})
+    return MatrixTools.lift_partial_solution(solution, instance.b, instance.A)
+end
+
 function integer_objective(
     instance :: IPInstance
 ) :: Array{Int}

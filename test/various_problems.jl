@@ -85,14 +85,33 @@ end
 using MIPMatrixTools.IPInstances
 using IPGBs.FourTi2
 using IPGBs
+import LinearAlgebra
+
+function initial_lap(n)
+    id = Matrix{Int}(LinearAlgebra.I, n, n)
+    return reshape(id, n^2)
+end
+
+function initial_set_cover(m)
+    #I have to consider slack variables
+    return ones(Int, m)
+end
+
+function initial_set_packing(m)
+    return zeros(Int, m)
+end
+
 function test_lap(n, reps = 1)
     for rep in 1:reps
         lap_model, _ = generate_lap(n)
         lap = IPInstance(lap_model, infer_binary=false)
+        init_sol = initial_lap(n)
         gb, t4ti2, _, _, _ = @timed groebner(lap)
         println("LAP & 4ti2 & ", n, " & 0 & 0 & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
-        gb2, tipgbs, _, _, _ = @timed groebner_basis(lap)
+        gb2, tipgbs, _, _, _ = @timed groebner_basis(lap, solutions = [init_sol])
         println("LAP & IPGBs & ", n, " & 0 & 0 & ", rep, " & ", size(gb, 2), " & ", length(gb2), " & ", tipgbs)
+        _, topt, _, _, _ = @timed IPGBs.Markov.optimize(lap, solution=init_sol)
+        println("LAP & Optimize & " , n, " & 0 & 0 & ", rep, " & ", " - ", " & ", " - ", " & ", topt)
     end
 end
 
@@ -101,6 +120,9 @@ function test_set_cover(n, m, p, reps = 1)
     for rep in 1:reps
         cov_model, _ = generate_set_cover(n, m, p)
         cov = IPInstance(cov_model, infer_binary=true)
+        init_sol = IPInstances.extend_feasible_solution(cov, initial_set_cover(m))
+        @show init_sol
+        @show IPInstances.is_feasible_solution(cov, init_sol)
         gb, t4ti2, _, _, _ = @timed groebner(cov)
         println("Cover & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
         gb2, tipgbs, _, _, _ = @timed groebner_basis(cov)
@@ -112,6 +134,7 @@ function test_set_packing(n, m, p, reps = 1)
     for rep in 1:reps
         pack_model = generate_set_packing(n, m, p)
         pack = IPInstance(pack_model, infer_binary=false)
+        init_sol = IPInstances.extend_feasible_solution(pack, initial_set_packing(m))
         gb, t4ti2, _, _, _ = @timed groebner(pack)
         println("Packing & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
         gb2, tipgbs, _, _, _ = @timed groebner_basis(pack)
