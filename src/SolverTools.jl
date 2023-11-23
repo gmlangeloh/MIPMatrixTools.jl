@@ -366,13 +366,15 @@ end
 """
     is_bounded(model :: JuMP.Model)
 
-Return true iff the IP/LP given by `model` is feasible.
+Return true iff the IP/LP given by `model` is bounded.
+
+`model` is assumed to be feasible.
 """
 function is_bounded(
     model :: JuMP.Model
 ) :: Bool
     optimize!(model)
-    if termination_status(model) == MOI.DUAL_INFEASIBLE
+    if termination_status(model) in [MOI.DUAL_INFEASIBLE, MOI.INFEASIBLE_OR_UNBOUNDED]
         return false
     end
     return true
