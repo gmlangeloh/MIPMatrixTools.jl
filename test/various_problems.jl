@@ -82,6 +82,31 @@ function generate_set_packing(n :: Int, m :: Int, p :: Float64)
     return model
 end
 
+function generate_bqp(n :: Int, range :: Int = 10)
+    Q = rand(-range:range, n, n)
+    #Set everything strictly below the diagonal to zero
+    for i in 1:n
+        for j in 1:(i-1)
+            Q[i, j] = 0
+        end
+    end
+    model = Model()
+    @variable(model, x[1:n], Bin)
+    @variable(model, z[i=1:n, j=(i+1):n], Bin)
+    @objective(model, Min, 
+        sum(Q[i, j] * z[i, j] for i in 1:n, j in (i+1):n)
+        + sum(Q[i, i] * x[i] for i in 1:n) 
+    )
+    #Enforce that z[i, j] = x[i] * x[j] = x[i] AND x[j]
+    for i in 1:n
+        for j in (i+1):n
+            @constraint(model, 2*z[i, j] <= x[i] + x[j])
+            @constraint(model, z[i, j] >= x[i] + x[j] - 1)
+        end
+    end
+    return model
+end
+
 using MIPMatrixTools.IPInstances
 using IPGBs.FourTi2
 using IPGBs
@@ -106,6 +131,8 @@ function test_lap(n, reps = 1)
         lap_model, _ = generate_lap(n)
         lap = IPInstance(lap_model, infer_binary=false)
         init_sol = initial_lap(n)
+        (opt_sol, opt_val), t4ti2opt, _, _, _ = @timed minimize(lap.A, round.(Int, lap.C), init_sol)
+        println("Optimal solution: ", opt_sol, " with value ", opt_val, " in time ", t4ti2opt)
         gb, t4ti2, _, _, _ = @timed groebner(lap)
         println("LAP & 4ti2 & ", n, " & 0 & 0 & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
         gb2, tipgbs, _, _, _ = @timed groebner_basis(lap, solutions = [init_sol])
