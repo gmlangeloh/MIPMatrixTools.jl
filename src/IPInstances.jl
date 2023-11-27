@@ -602,35 +602,11 @@ function lattice_basis_projection(
             j += 1
         end
     elseif var_selection == :SimplexBasis
-        #Create some LI basis for the lattice. Start from the non-basic
+        #Create some LI set for the lattice from the non-basic
         #variables of the optimal solution to the linear relaxation
-        #Then, remove variables until the basis is linearly independent
         var_basis, _ = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
         li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
         sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
-        L = instance.lattice_basis
-        lattice_rank = instance.n - instance.rank
-        li_basis = L[:, li_cols]
-        while lattice_rank < length(li_cols) && length(li_cols) > 0
-            j = length(li_cols)
-            while j >= 1
-                #Check whether removing the j-th column still keeps
-                #rank(li_basis) >= lattice_rank. If so, remove it.
-                #Otherwise, keep searching for j satisfying this property.
-                col = li_cols[j]
-                deleteat!(li_cols, j)
-                li_basis = L[:, li_cols]
-                if rank(li_basis) >= lattice_rank
-                    push!(sigma, col)
-                    break
-                else
-                    #Reinsert in the same place, removing j didn't work
-                    insert!(li_cols, j, col)
-                    j -= 1
-                end
-            end
-            li_basis = L[:, li_cols]
-        end
     else
         error("Unknown variable selection method: $var_selection")
     end
