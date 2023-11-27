@@ -441,9 +441,15 @@ function solve(instance :: IPInstance)
     )
 end
 
-function is_feasible_solution(instance :: IPInstance, solution :: Vector{Int})
-    return instance.A * solution == instance.b && 
-        all(solution[1:instance.nonnegative_end] .>= 0)
+function is_feasible_solution(
+    instance :: IPInstance, 
+    solution :: Vector{Int}, 
+    permutation :: Vector{Int} = collect(1:instance.n)
+) :: Bool
+    @assert length(solution) == instance.n
+    perm_solution = solution[permutation]
+    return instance.A * perm_solution == instance.b && 
+        all(perm_solution[1:instance.nonnegative_end] .>= 0)
 end
 
 function extend_feasible_solution(instance :: IPInstance, solution :: Vector{Int})
