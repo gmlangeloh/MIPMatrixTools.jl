@@ -1,11 +1,14 @@
+module CombinatorialOptimizationInstances
+
 using JuMP
 import LinearAlgebra
 using Random
 
-using IPGBs
-using IPGBs.FourTi2
 using MIPMatrixTools.GBTools
 using MIPMatrixTools.IPInstances
+
+export generate_knapsack, generate_lap, generate_set_cover, generate_set_packing
+export generate_all_instances
 
 #Knapsack problems
 function generate_knapsack(
@@ -159,71 +162,6 @@ function initial_set_packing(m)
     return zeros(Int, m)
 end
 
-function test_lap(n, reps = 1)
-    for rep in 1:reps
-        lap_model, _ = generate_lap(n)
-        lap = IPInstance(lap_model, infer_binary=false)
-        init_sol = initial_lap(n)
-        (opt_sol, opt_val), t4ti2opt, _, _, _ = @timed minimize(lap.A, round.(Int, lap.C), init_sol)
-        println("Optimal solution: ", opt_sol, " with value ", opt_val, " in time ", t4ti2opt)
-        gb, t4ti2, _, _, _ = @timed groebner(lap)
-        println("LAP & 4ti2 & ", n, " & 0 & 0 & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
-        gb2, tipgbs, _, _, _ = @timed groebner_basis(lap, solutions = [init_sol])
-        println("LAP & IPGBs & ", n, " & 0 & 0 & ", rep, " & ", size(gb, 2), " & ", length(gb2), " & ", tipgbs)
-        _, topt, _, _, _ = @timed IPGBs.Markov.optimize(lap, solution=init_sol)
-        println("LAP & Optimize & " , n, " & 0 & 0 & ", rep, " & ", " - ", " & ", " - ", " & ", topt)
-    end
-end
-
-function test_set_cover(n, m, p, reps = 1)
-    Random.seed!(0)
-    for rep in 1:reps
-        cov_model, _ = generate_set_cover(n, m, p)
-        cov = IPInstance(cov_model, infer_binary=true)
-        init_sol = IPInstances.extend_feasible_solution(cov, initial_set_cover(m))
-        @show init_sol
-        @show IPInstances.is_feasible_solution(cov, init_sol)
-        gb, t4ti2, _, _, _ = @timed groebner(cov)
-        println("Cover & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
-        gb2, tipgbs, _, _, _ = @timed groebner_basis(cov)
-        println("Cover & IPGBs & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", length(gb2), " & ", tipgbs)
-    end
-end
-
-function test_set_packing(n, m, p, reps = 1)
-    for rep in 1:reps
-        pack_model = generate_set_packing(n, m, p)
-        pack = IPInstance(pack_model, infer_binary=false)
-        init_sol = IPInstances.extend_feasible_solution(pack, initial_set_packing(m))
-        gb, t4ti2, _, _, _ = @timed groebner(pack)
-        println("Packing & 4ti2 & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", size(gb, 1), " & ", t4ti2)
-        gb2, tipgbs, _, _, _ = @timed groebner_basis(pack)
-        println("Packing & IPGBs & ", n, " & ", m, " & ", p, " & ", rep, " & ", size(gb, 2), " & ", length(gb2), " & ", tipgbs)
-    end
-end
-
-function compare_4ti2_ipgbs()
-    println("Algorithm & Problem & n & m & p & Rep & Vars & GBSize & Time")
-    Random.seed!(0)
-    for n in 5:5:20
-        test_lap(n, 30)
-    end
-    for n in 5:5:20
-        for m in 3:3:12
-            for p in 0.05:0.05:0.5
-                test_set_cover(n, m, p, 30)
-            end
-        end
-    end
-    for n in 5:5:20
-        for m in 3:3:12
-            for p in 0.05:0.05:0.5
-                test_set_packing(n, m, p, 30)
-            end
-        end
-    end
-end
-
 ###
 ### Generating instances for all problems
 ###
@@ -355,4 +293,6 @@ function generate_all_instances()
     all_laps()
     all_set_covers()
     all_set_packings()
+end
+
 end

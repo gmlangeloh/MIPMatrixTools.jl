@@ -5,5 +5,6 @@ include("./GBTools.jl")
 include("./MatrixTools.jl")
 include("./SolverTools.jl")
 include("./IPInstances.jl")
+include("./CombinatorialOptimizationInstances.jl")
 
 end
