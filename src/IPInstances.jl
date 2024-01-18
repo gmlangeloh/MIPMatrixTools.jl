@@ -428,6 +428,11 @@ function IPInstance(model::JuMP.Model; infer_binary :: Bool = true)
     return IPInstance(A, b, c, u, apply_normalization=false)
 end
 
+function IPInstance(path :: String; infer_binary :: Bool = true)
+    model = read_from_file(path)
+    return IPInstance(model, infer_binary=infer_binary)
+end
+
 """
     solve(instance :: IPInstance)
 

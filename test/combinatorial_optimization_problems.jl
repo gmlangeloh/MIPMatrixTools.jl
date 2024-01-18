@@ -238,7 +238,7 @@ function all_binary_knapsacks(reps = 10)
     end
     for correlated in [true, false]
         for n in ns
-            for rep in reps
+            for rep in 1:reps
                 knapsack, _ = generate_knapsack(n, binary=true, correlation=correlated)
                 corr = ""
                 if correlated
@@ -259,7 +259,7 @@ function all_unbounded_knapsacks(reps = 10)
     end
     for correlated in [true, false]
         for n in ns
-            for rep in reps
+            for rep in 1:reps
                 knapsack, _ = generate_knapsack(n, binary=false, correlation=correlated)
                 corr = ""
                 if correlated
@@ -281,7 +281,7 @@ function all_multiknapsacks(reps = 10)
     end
     for n in ns
         for m in ms
-            for rep in reps
+            for rep in 1:reps
                 knapsack, _ = generate_knapsack(n, m)
                 name = "knapsack_multidimensional_" * string(n) * "_" * string(m) * "_" * string(rep) * ".mps"
                 write_to_file(knapsack, full_path * "/" * name)
@@ -297,7 +297,7 @@ function all_laps(reps = 10)
         mkdir(full_path)
     end
     for n in ns
-        for rep in reps
+        for rep in 1:reps
             lap, _ = generate_lap(n)
             name = "lap_" * string(n) * "_" * string(rep) * ".mps"
             write_to_file(lap, full_path * "/" * name)
@@ -308,7 +308,7 @@ end
 function all_set_covers(reps = 10)
     ns = [5, 10, 15, 20]
     ms = [3, 6, 9, 12]
-    ps = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    ps = [0.05, 0.1, 0.2, 0.3]
     full_path = BASE_INSTANCE_DIR * "set_cover"
     if !isdir(full_path)
         mkdir(full_path)
@@ -316,7 +316,7 @@ function all_set_covers(reps = 10)
     for n in ns
         for m in ms
             for p in ps
-                for rep in reps
+                for rep in 1:reps
                     cover, _ = generate_set_cover(n, m, p)
                     name = "set_cover_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
                     write_to_file(cover, BASE_INSTANCE_DIR * "set_cover" * "/" * name)
@@ -329,7 +329,7 @@ end
 function all_set_packings(reps = 10)
     ns = [5, 10, 15, 20]
     ms = [3, 6, 9, 12]
-    ps = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    ps = [0.05, 0.1, 0.2, 0.3]
     full_path = BASE_INSTANCE_DIR * "set_packing"
     if !isdir(full_path)
         mkdir(full_path)
@@ -337,7 +337,7 @@ function all_set_packings(reps = 10)
     for n in ns
         for m in ms
             for p in ps
-                for rep in reps
+                for rep in 1:reps
                     packing = generate_set_packing(n, m, p)
                     name = "set_packing_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
                     write_to_file(packing, BASE_INSTANCE_DIR * "set_packing" * "/" * name)
