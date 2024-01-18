@@ -1,7 +1,11 @@
 using JuMP
+import LinearAlgebra
 using Random
 
+using IPGBs
+using IPGBs.FourTi2
 using MIPMatrixTools.GBTools
+using MIPMatrixTools.IPInstances
 
 #Knapsack problems
 function generate_knapsack(
@@ -141,11 +145,6 @@ function generate_bqp(n :: Int, range :: Int = 10)
     return model
 end
 
-using MIPMatrixTools.IPInstances
-using IPGBs.FourTi2
-using IPGBs
-import LinearAlgebra
-
 function initial_lap(n)
     id = Matrix{Int}(LinearAlgebra.I, n, n)
     return reshape(id, n^2)
@@ -223,4 +222,137 @@ function compare_4ti2_ipgbs()
             end
         end
     end
+end
+
+###
+### Generating instances for all problems
+###
+
+BASE_INSTANCE_DIR = "../instances/"
+
+function all_binary_knapsacks(reps = 10)
+    ns = [5, 10, 20, 30, 40, 50]
+    full_path = BASE_INSTANCE_DIR * "knapsack_binary"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for correlated in [true, false]
+        for n in ns
+            for rep in reps
+                knapsack, _ = generate_knapsack(n, binary=true, correlation=correlated)
+                corr = ""
+                if correlated
+                    corr = "_corr"
+                end
+                name = "knapsack_binary_" * string(n) * corr * "_" * string(rep) * ".mps"
+                write_to_file(knapsack, full_path * "/" * name)
+            end
+        end
+    end
+end
+
+function all_unbounded_knapsacks(reps = 10)
+    ns = [10, 30, 50, 75, 100]
+    full_path = BASE_INSTANCE_DIR * "knapsack_unbounded"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for correlated in [true, false]
+        for n in ns
+            for rep in reps
+                knapsack, _ = generate_knapsack(n, binary=false, correlation=correlated)
+                corr = ""
+                if correlated
+                    corr = "_corr"
+                end
+                name = "knapsack_unbounded_" * string(n) * corr * "_" * string(rep) * ".mps"
+                write_to_file(knapsack, full_path * "/" * name)
+            end
+        end
+    end
+end
+
+function all_multiknapsacks(reps = 10)
+    ns = [10, 15, 20, 25, 30]
+    ms = [2, 3]
+    full_path = BASE_INSTANCE_DIR * "knapsack_multidimensional"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for n in ns
+        for m in ms
+            for rep in reps
+                knapsack, _ = generate_knapsack(n, m)
+                name = "knapsack_multidimensional_" * string(n) * "_" * string(m) * "_" * string(rep) * ".mps"
+                write_to_file(knapsack, full_path * "/" * name)
+            end
+        end
+    end
+end
+
+function all_laps(reps = 10)
+    ns = [5, 10, 15, 20]
+    full_path = BASE_INSTANCE_DIR * "lap"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for n in ns
+        for rep in reps
+            lap, _ = generate_lap(n)
+            name = "lap_" * string(n) * "_" * string(rep) * ".mps"
+            write_to_file(lap, full_path * "/" * name)
+        end
+    end
+end
+
+function all_set_covers(reps = 10)
+    ns = [5, 10, 15, 20]
+    ms = [3, 6, 9, 12]
+    ps = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    full_path = BASE_INSTANCE_DIR * "set_cover"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for n in ns
+        for m in ms
+            for p in ps
+                for rep in reps
+                    cover, _ = generate_set_cover(n, m, p)
+                    name = "set_cover_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
+                    write_to_file(cover, BASE_INSTANCE_DIR * "set_cover" * "/" * name)
+                end
+            end
+        end
+    end
+end
+
+function all_set_packings(reps = 10)
+    ns = [5, 10, 15, 20]
+    ms = [3, 6, 9, 12]
+    ps = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    full_path = BASE_INSTANCE_DIR * "set_packing"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for n in ns
+        for m in ms
+            for p in ps
+                for rep in reps
+                    packing = generate_set_packing(n, m, p)
+                    name = "set_packing_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
+                    write_to_file(packing, BASE_INSTANCE_DIR * "set_packing" * "/" * name)
+                end
+            end
+        end
+    end
+end
+
+function generate_all_instances()
+    Random.seed!(0)
+    all_binary_knapsacks()
+    all_unbounded_knapsacks()
+    all_multiknapsacks()
+    all_laps()
+    all_set_covers()
+    all_set_packings()
 end
