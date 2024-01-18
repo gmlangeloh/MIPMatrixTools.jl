@@ -277,7 +277,7 @@ function extract_bound(
 end
 
 function extract_objective(
-    objective_list :: Vector, 
+    objective_list :: Vector,
     x :: Vector{JuMP.VariableRef}
 )
     #Make a matrix whose rows are the coefficients of each objective function
@@ -442,13 +442,13 @@ function solve(instance :: IPInstance)
 end
 
 function is_feasible_solution(
-    instance :: IPInstance, 
-    solution :: Vector{Int}, 
+    instance :: IPInstance,
+    solution :: Vector{Int},
     permutation :: Vector{Int} = collect(1:instance.n)
 ) :: Bool
     @assert length(solution) == instance.n
     perm_solution = solution[permutation]
-    return instance.A * perm_solution == instance.b && 
+    return instance.A * perm_solution == instance.b &&
         all(perm_solution[1:instance.nonnegative_end] .>= 0)
 end
 
@@ -541,7 +541,7 @@ function projection(
     instance :: IPInstance,
     away_from :: Vector{Int}
 ) :: IPInstance
-    #Only project away from variables with relaxed non-negativity 
+    #Only project away from variables with relaxed non-negativity
     @assert all(s > instance.nonnegative_end for s in away_from)
     #Find variables to project onto
     onto = complement(away_from, instance.n)
@@ -616,8 +616,6 @@ end
 
 function linear_relaxation_status(instance :: IPInstance)
     optimize!(instance.model)
-    println("LINEAR RELAXATION STATUS")
-    @show termination_status(instance.model)
     write_to_file(instance.model, "model.mps")
 end
 
@@ -858,8 +856,8 @@ function original_variable_order(
 end
 
 function add_constraint(
-    instance :: IPInstance, 
-    constraint :: Vector{Int}, 
+    instance :: IPInstance,
+    constraint :: Vector{Int},
     rhs :: Int,
     sense :: Symbol = :EQ
 ) :: IPInstance
@@ -874,7 +872,7 @@ function add_constraint(
     new_C = C
     new_u = u
     if sense == :EQ
-        #No need to add a slack variable 
+        #No need to add a slack variable
     elseif sense == :LT || sense == :GT
         new_A = [ new_A zeros(Int, size(new_A, 1), 1) ]
         new_A[end, end] = sense == :LT ? 1 : -1

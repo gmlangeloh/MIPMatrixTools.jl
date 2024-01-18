@@ -3,6 +3,40 @@ using Random
 
 using MIPMatrixTools.GBTools
 
+#Knapsack problems
+function generate_knapsack(
+    n :: Int,
+    m :: Int = 1;
+    binary :: Bool = false,
+    correlation :: Bool = false,
+    max_coef :: Int = 1000
+)
+    eps = round.(Int, max_coef / 10)
+    C = rand(1:max_coef, 1, n)
+    A = Matrix{Int}(undef, m, n)
+    for i in 1:m
+        for j in 1:n
+            if correlation
+                #Positive correlation between values and weights makes the problem harder,
+                #in average
+                A[i, j] = rand((C[j] - eps):(C[j] + eps))
+            else
+                A[i, j] = rand(1:max_coef)
+            end
+        end
+    end
+    b = round.(Int, sum(A, dims=2)[:, 1] / 2)
+    model = Model()
+    if binary
+        @variable(model, x[1:n] >= 0, Bin)
+    else
+        @variable(model, x[1:n] >= 0, Int)
+    end
+    @objective(model, Max, sum(C[1, j] * x[j] for j in 1:n))
+    @constraint(model, [i in 1:m], sum(A[i, j] * x[j] for j in 1:n) <= b[i])
+    return model, x
+end
+
 #Linear assignment problems
 function generate_lap(n :: Int)
     obj = rand(1:n, n, n)
@@ -19,7 +53,7 @@ function generate_lap(n :: Int)
 end
 
 function repeated_subsets(subsets :: Vector{Set{Int}})
-    return any(subsets[i] == subsets[j] for i in 1:length(subsets), j in 1:length(subsets) if i != j) 
+    return any(subsets[i] == subsets[j] for i in 1:length(subsets), j in 1:length(subsets) if i != j)
 end
 
 function is_feasible_set_cover(subsets :: Vector{Set{Int}}, n :: Int)
@@ -52,8 +86,8 @@ function generate_subsets(n :: Int, m :: Int, p :: Float64, feasibility_check)
 end
 
 #Set covering problems
-#Given n elements (say, the numbers 1:n) and m subsets of these elements, find 
-#a minimum number of subsets such that every element is contained in at least 
+#Given n elements (say, the numbers 1:n) and m subsets of these elements, find
+#a minimum number of subsets such that every element is contained in at least
 #one of the chosen subsets.
 #p is the probability any given element is in a subset.
 function generate_set_cover(n :: Int, m :: Int, p :: Float64)
@@ -93,9 +127,9 @@ function generate_bqp(n :: Int, range :: Int = 10)
     model = Model()
     @variable(model, x[1:n], Bin)
     @variable(model, z[i=1:n, j=(i+1):n], Bin)
-    @objective(model, Min, 
+    @objective(model, Min,
         sum(Q[i, j] * z[i, j] for i in 1:n, j in (i+1):n)
-        + sum(Q[i, i] * x[i] for i in 1:n) 
+        + sum(Q[i, i] * x[i] for i in 1:n)
     )
     #Enforce that z[i, j] = x[i] * x[j] = x[i] AND x[j]
     for i in 1:n

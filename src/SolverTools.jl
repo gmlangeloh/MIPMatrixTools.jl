@@ -423,8 +423,8 @@ end
 
 """
     optimal_weight_vector(
-    A :: Matrix{Int}, 
-    b :: Vector{Int}, 
+    A :: Matrix{Int},
+    b :: Vector{Int},
     unbounded :: Vector{Bool}
 ) :: Tuple{Vector{Float64}, Float64}
 
@@ -434,8 +434,8 @@ end
     idea in Gröbner basis truncation.
 """
 function optimal_weight_vector(
-    A :: Matrix{Int}, 
-    b :: Vector{Int}, 
+    A :: Matrix{Int},
+    b :: Vector{Int},
     unbounded :: Vector{Bool}
 ) :: Tuple{Vector{Float64}, Float64}
     model = Model(GENERAL_SOLVER.Optimizer)
