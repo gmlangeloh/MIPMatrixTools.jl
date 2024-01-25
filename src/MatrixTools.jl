@@ -129,7 +129,7 @@ function initial_solution(
 end
 
 function lift_partial_solution(
-    solution :: Vector{Int}, 
+    solution :: Vector{Int},
     rhs :: Vector{Int},
     constraints :: Matrix{Int}
 )
