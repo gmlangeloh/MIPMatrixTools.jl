@@ -1,8 +1,10 @@
 module MatrixTools
 
 export hnf_lattice_basis, fiber_solution, normalize_hnf!, basis_to_uhnf, lift_vector
+export li_rows
 
 using AbstractAlgebra
+using LinearAlgebra
 
 const AlgebraInt = AbstractAlgebra.Integers{Int}()
 
@@ -165,6 +167,21 @@ function lift_vector(
     full_col_basis = transpose(lattice_basis)
     res = full_col_basis * coefs
     return reshape(Array(res), length(res))
+end
+
+# This should preferably be called when the matrix does not include upper bound constraints
+#on the variables, otherwise we get numerical issues.
+function li_rows(A :: Matrix{Int}, b :: Vector{Int}; tol = 1e-10)
+    U, S, V = svd(A)
+    nonzero_singular_values = findall(x -> abs(x) > tol, S)
+    #Obtain the LI rows of A by taking the rows of V corresponding to the nonzero singular values
+    #A == U * diagm(S) * V'
+    Uli = U[nonzero_singular_values, nonzero_singular_values]
+    Vli = V[:, nonzero_singular_values]'
+    Sli = diagm(S[nonzero_singular_values])
+    li_A = round.(Int, Uli * Sli * Vli)
+    li_b = b[nonzero_singular_values]
+    return li_A, li_b
 end
 
 end

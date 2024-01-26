@@ -42,6 +42,7 @@ function normalize_ip(
     if !apply_normalization
         return A, b, C, u, nonnegative
     end
+    A, b = li_rows(A, b)
     m, n = size(A)
     k = count(!isnothing(u[i]) for i in 1:length(u))
     Ik = Matrix{Int}(I, k, k)
