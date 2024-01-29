@@ -612,7 +612,9 @@ function lattice_basis_projection(
         #Create some LI set for the lattice from the non-basic
         #variables of the optimal solution to the linear relaxation
         var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
+        println(var_basis)
         li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
+        @show length(li_cols) instance.rank count(var_basis) rank(instance.lattice_basis)
         sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
     else
         error("Unknown variable selection method: $var_selection")

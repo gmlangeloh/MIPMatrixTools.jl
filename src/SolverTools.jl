@@ -39,12 +39,14 @@ function optimal_basis!(
     n = length(x)
     var_basis = fill(false, n)
     found_zero = false
+    println("variables")
     for j in 1:n
         status = MOI.get(model, MOI.VariableBasisStatus(), x[j])
         #It is necessary to eliminate a basic variable with value 0, because we added
         #a new constraint to the model, so the optimal basis will contain an extra
         #basic variable. Such a variable should always exist.
-        if isapprox(value(x[j]), 0.0)
+        println(j, " : ", status, ", ", value(x[j]))
+        if status == MOI.BASIC && isapprox(value(x[j]), 0.0) && !found_zero
             found_zero = true
             continue
         end
@@ -52,18 +54,14 @@ function optimal_basis!(
             var_basis[j] = true
         end
     end
+    println("constraints")
+    for i in 1:length(constraints)
+        status = MOI.get(model, MOI.ConstraintBasisStatus(), constraints[i])
+        println(i, " : ", status)
+    end
     #Go back to the original model
     @objective(model, Min, old_obj)
     delete(model, obj_constr)
-    #cons_basis = fill(false, m)
-    ##Look into the constraints as well. They may be set as basic,
-    ##that is, the corresponding slack variables may be basic.
-    #for i in 1:m
-    #    status = MOI.get(model, MOI.ConstraintBasisStatus(), constraints[i])
-    #    if status == MOI.BASIC
-    #        cons_basis[i] = true
-    #    end
-    #end
     return var_basis
 end
 
