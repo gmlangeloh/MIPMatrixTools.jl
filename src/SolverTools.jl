@@ -24,27 +24,47 @@ function optimal_basis!(
     model::JuMP.Model,
     x :: Vector{JuMP.VariableRef},
     constraints :: Vector{JuMP.ConstraintRef}
-)::Tuple{Vector{Bool},Vector{Bool}}
+)::Vector{Bool}
     optimize!(model)
+    #Reoptimize with the objective value set as a constraint.
+    #The new objective function will be a sum of the values of the original variables
+    #This guarantees an optimal basis involving only these variables, and not slacks
+    #corresponding to the constraints.
+    val = objective_value(model)
+    old_obj = objective_function(model)
+    obj_constr = @constraint(model, old_obj == val)
+    @objective(model, Max, sum(x))
+    optimize!(model)
+    #Find basic original variables for the problem
     n = length(x)
-    m = length(constraints)
     var_basis = fill(false, n)
-    cons_basis = fill(false, m)
+    found_zero = false
     for j in 1:n
         status = MOI.get(model, MOI.VariableBasisStatus(), x[j])
+        #It is necessary to eliminate a basic variable with value 0, because we added
+        #a new constraint to the model, so the optimal basis will contain an extra
+        #basic variable. Such a variable should always exist.
+        if isapprox(value(x[j]), 0.0)
+            found_zero = true
+            continue
+        end
         if status == MOI.BASIC
             var_basis[j] = true
         end
     end
-    #Look into the constraints as well. They may be set as basic,
-    #that is, the corresponding slack variables may be basic.
-    for i in 1:m
-        status = MOI.get(model, MOI.ConstraintBasisStatus(), constraints[i])
-        if status == MOI.BASIC
-            cons_basis[i] = true
-        end
-    end
-    return var_basis, cons_basis
+    #Go back to the original model
+    @objective(model, Min, old_obj)
+    delete(model, obj_constr)
+    #cons_basis = fill(false, m)
+    ##Look into the constraints as well. They may be set as basic,
+    ##that is, the corresponding slack variables may be basic.
+    #for i in 1:m
+    #    status = MOI.get(model, MOI.ConstraintBasisStatus(), constraints[i])
+    #    if status == MOI.BASIC
+    #        cons_basis[i] = true
+    #    end
+    #end
+    return var_basis
 end
 
 """

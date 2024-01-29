@@ -611,7 +611,7 @@ function lattice_basis_projection(
     elseif var_selection == :SimplexBasis
         #Create some LI set for the lattice from the non-basic
         #variables of the optimal solution to the linear relaxation
-        var_basis, _ = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
+        var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
         li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
         sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
     else
