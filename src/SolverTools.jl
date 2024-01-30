@@ -38,14 +38,12 @@ function optimal_basis!(
     #Find basic original variables for the problem
     n = length(x)
     var_basis = fill(false, n)
-    found_zero = false
-    println("variables")
+    found_zero = MOI.get(model, MOI.ConstraintBasisStatus(), obj_constr) == MOI.BASIC
     for j in 1:n
         status = MOI.get(model, MOI.VariableBasisStatus(), x[j])
         #It is necessary to eliminate a basic variable with value 0, because we added
         #a new constraint to the model, so the optimal basis will contain an extra
         #basic variable. Such a variable should always exist.
-        println(j, " : ", status, ", ", value(x[j]))
         if status == MOI.BASIC && isapprox(value(x[j]), 0.0) && !found_zero
             found_zero = true
             continue
@@ -53,11 +51,6 @@ function optimal_basis!(
         if status == MOI.BASIC
             var_basis[j] = true
         end
-    end
-    println("constraints")
-    for i in 1:length(constraints)
-        status = MOI.get(model, MOI.ConstraintBasisStatus(), constraints[i])
-        println(i, " : ", status)
     end
     #Go back to the original model
     @objective(model, Min, old_obj)

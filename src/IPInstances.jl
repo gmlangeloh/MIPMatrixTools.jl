@@ -39,11 +39,14 @@ function normalize_ip(
     apply_normalization::Bool = true,
     invert_objective::Bool = true
 )::Tuple{Array{Int,2},Vector{Int},Array{Float64,2},Vector{Union{Int,Nothing}},Vector{Bool}} where {T<:Real}
+    #Guarantee that A has full row rank
+    m, n = size(A)
+    if rank(A) < m
+        A, b = li_rows(A, b)
+    end
     if !apply_normalization
         return A, b, C, u, nonnegative
     end
-    A, b = li_rows(A, b)
-    m, n = size(A)
     k = count(!isnothing(u[i]) for i in 1:length(u))
     Ik = Matrix{Int}(I, k, k)
     UBkn = zeros(Int, k, n)
@@ -380,6 +383,7 @@ function IPInstance(model::JuMP.Model; infer_binary :: Bool = true)
             push!(ineq_directions, MOI.GreaterThan{Float64})
         end
     end
+    original_rows = length(rows)
     for (var, ub) in upper_bounds
         new_row = zeros(Int, n)
         new_row[var] = 1
@@ -416,6 +420,12 @@ function IPInstance(model::JuMP.Model; infer_binary :: Bool = true)
             end
         end
     end
+    #Make sure the original constraints are full row rank
+    #And thus that the whole matrix is full row rank. The main reason for doing this
+    #with the original constraints is numerical stability.
+    frrA, frrB = li_rows(A[1:original_rows, :], b[1:original_rows])
+    A = [frrA; A[(original_rows+1):end, :]]
+    b = [frrB; b[(original_rows+1):end]]
     #Build upper bound vector
     u :: Vector{Union{Int, Nothing}} = fill(nothing, size(A, 2))
     for (var, ub) in upper_bounds
@@ -612,9 +622,7 @@ function lattice_basis_projection(
         #Create some LI set for the lattice from the non-basic
         #variables of the optimal solution to the linear relaxation
         var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
-        println(var_basis)
         li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
-        @show length(li_cols) instance.rank count(var_basis) rank(instance.lattice_basis)
         sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
     else
         error("Unknown variable selection method: $var_selection")
@@ -906,6 +914,7 @@ function random_ipinstance(
     m :: Int,
     n :: Int
 ) :: IPInstance
+    #TODO: Put this somewhere else!!!
     instance = nothing
     feasible = false
     bounded = false
