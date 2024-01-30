@@ -589,9 +589,9 @@ of its linear relaxation.
 function group_relaxation(
     instance :: IPInstance
 ) :: IPInstance
-    var_basis, cons_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
+    var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars)
     nonbasics = [ !variable for variable in var_basis ]
-    @assert count(var_basis) + count(cons_basis) == instance.m
+    @assert count(var_basis) == instance.m
     #Keep only the nonnegativity constraints on the non-basic variables
     return nonnegativity_relaxation(instance, nonbasics)
 end
@@ -621,9 +621,22 @@ function lattice_basis_projection(
     elseif var_selection == :SimplexBasis
         #Create some LI set for the lattice from the non-basic
         #variables of the optimal solution to the linear relaxation
-        var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars, instance.model_cons)
-        li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
+        var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars)
         sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
+        #At worst, we may be missing one variable in var_basis to get to the full rank of A
+        #That happens when the objective function is linearly dependent with some constraint
+        #In that case, we can just add some new LI variable not in var_basis
+        j = 1
+        while j <= instance.n && rank(instance.A[:, sigma]) < instance.m
+            if !(j in var_basis) && rank(instance.A[:, [sigma; j]]) == instance.m
+                var_basis[j] = true
+                push!(sigma, j)
+                break
+            end
+            j += 1
+        end
+        sort!(sigma)
+        li_cols = [ i for i in eachindex(var_basis) if !var_basis[i] ]
     else
         error("Unknown variable selection method: $var_selection")
     end

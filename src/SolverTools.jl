@@ -22,8 +22,7 @@ This function calls `optimize!` on `model` in order to be self-contained.
 """
 function optimal_basis!(
     model::JuMP.Model,
-    x :: Vector{JuMP.VariableRef},
-    constraints :: Vector{JuMP.ConstraintRef}
+    x :: Vector{JuMP.VariableRef}
 )::Vector{Bool}
     optimize!(model)
     #Reoptimize with the objective value set as a constraint.
