@@ -454,11 +454,12 @@ function optimal_weight_vector(
     @assert length(b) == n
     @variable(model, x[1:n] >= 0)
     @objective(model, Min, b' * x)
-    for i in 1:n
-        if unbounded[i]
-            set_upper_bound(x[i], 0)
-        end
-    end
+    #TODO: Understand whether this is necessary or not.
+    #for i in 1:n
+    #    if unbounded[i]
+    #        set_upper_bound(x[i], 0)
+    #    end
+    #end
     for i in 1:m
         @constraint(model, A[i, :]' * x == 0)
     end
