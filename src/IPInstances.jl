@@ -627,11 +627,16 @@ function lattice_basis_projection(
         #That happens when the objective function is linearly dependent with some constraint
         #In that case, we can just add some new LI variable not in var_basis
         j = 1
-        while j <= instance.n && rank(instance.A[:, sigma]) < instance.m
-            if !(j in var_basis) && rank(instance.A[:, [sigma; j]]) == instance.m
+        new_rank = rank(instance.A[:, sigma])
+        old_rank = new_rank
+        while j <= instance.n && old_rank < instance.m
+            push!(sigma, j)
+            new_rank = rank(instance.A[:, sigma])
+            if !var_basis[j] && new_rank > old_rank
                 var_basis[j] = true
-                push!(sigma, j)
-                break
+                old_rank = new_rank
+            else
+                pop!(sigma)
             end
             j += 1
         end
