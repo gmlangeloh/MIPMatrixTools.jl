@@ -29,7 +29,7 @@ function isincluded(
 end
 
 function diff(
-    gb1 :: Vector{Vector{Int}}, 
+    gb1 :: Vector{Vector{Int}},
     gb2 :: Vector{Vector{Int}}
 ) :: Vector{Vector{Int}}
     missing_elements = Vector{Int}[]
@@ -51,6 +51,9 @@ end
 function tomatrix(
     gb :: Vector{Vector{Int}}
 ) :: Array{Int, 2}
+    if isempty(gb)
+        return Array{Int, 2}(undef, 0, 0)
+    end
     M = foldl(hcat, gb)
     return M'
 end

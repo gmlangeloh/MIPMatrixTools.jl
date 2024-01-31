@@ -641,7 +641,8 @@ function lattice_basis_projection(
         error("Unknown variable selection method: $var_selection")
     end
     basis = instance.lattice_basis[:, li_cols]
-    return basis_to_uhnf(basis), sigma
+    @assert rank(basis) == rank(instance.lattice_basis)
+    return basis_to_uhnf(basis), basis, sigma
 end
 
 function linear_relaxation_status(instance :: IPInstance)
