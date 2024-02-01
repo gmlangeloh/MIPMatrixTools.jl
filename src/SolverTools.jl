@@ -43,7 +43,7 @@ function optimal_basis!(
         #It is necessary to eliminate a basic variable with value 0, because we added
         #a new constraint to the model, so the optimal basis will contain an extra
         #basic variable. Such a variable should always exist.
-        if status == MOI.BASIC && isapprox(value(x[j]), 0.0) && !found_zero
+        if status == MOI.BASIC && isapprox(value(x[j]), 0.0, atol=1e-8) && !found_zero
             found_zero = true
             continue
         end
