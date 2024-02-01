@@ -486,7 +486,24 @@ function guess_initial_solution(
         solution[(n-m+1):n] = instance.b
         return solution
     end
-    #TODO: Generate initial solutions for assignment problems, binary knapsacks, etc
+    if n % 2 == 0
+        #Guess that half of the variables are binary slacks. Then if we have a guess for
+        #the other half, we can deduce the binary slacks and get a full solution
+        half = n ÷ 2
+        if isinteger(sqrt(half)) #Guess: assignment problem
+            #Permutation solution.
+            k = Int(sqrt(half))
+            for i in 1:k
+                solution[i + (i - 1) * k] = 1
+            end
+            #Complete this partial solution with binary slacks
+            for i in half+1:n
+                solution[i] = 1 - solution[i - half]
+            end
+            return solution
+        end
+    end
+    throw(ArgumentError("Cannot guess initial solution for this instance"))
 end
 
 function extend_feasible_solution(instance :: IPInstance, solution :: Vector{Int})

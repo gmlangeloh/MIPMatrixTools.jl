@@ -20,11 +20,11 @@ function ends_with_slacks(A :: Matrix{Int}) :: Bool
     m, n = size(A)
     for i in 1:m
         j = n - m + i
-        if A[i, j] == 1 && all(A[i, k] == 0 for k in (n - m + 1):n if k != j)
-            return true
+        if A[i, j] != 1 || any(A[i, k] != 0 for k in (n - m + 1):n if k != j)
+            return false
         end
     end
-    return false
+    return true
 end
 
 function isincluded(
