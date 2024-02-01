@@ -205,10 +205,10 @@ function solve(
     u::Vector{<: Union{Int, Nothing}},
     nonnegative::Vector{Bool},
     var_type::DataType
-)::Vector{Float64}
+):: Tuple{Vector{Int}, Int}
     model, x, _ = jump_model(A, b, C, u, nonnegative, var_type)
     optimize!(model)
-    return value.(x)
+    return round.(Int, value.(x)), round(Int, objective_value(model))
 end
 
 """

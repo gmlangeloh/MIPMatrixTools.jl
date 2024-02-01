@@ -451,7 +451,7 @@ end
     Return the optimal solution to this IPInstance. This solution is computed
     using a traditional IP solver.
 """
-function solve(instance :: IPInstance)
+function solve(instance :: IPInstance) :: Tuple{Vector{Int}, Int}
     return SolverTools.solve(
         instance.A, instance.b, instance.C, instance.u,
         nonnegative_variables(instance), Int
@@ -467,6 +467,26 @@ function is_feasible_solution(
     perm_solution = solution[permutation]
     return instance.A * perm_solution == instance.b &&
         all(perm_solution[1:instance.nonnegative_end] .>= 0)
+end
+
+function guess_initial_solution(
+    instance :: IPInstance
+) :: Vector{Int}
+    A = instance.A
+    b = instance.b
+    m, n = size(A)
+    solution = zeros(Int, n)
+    #If the last m columns of A form an identity matrix, they are slack variables
+    #This means we can set all other variables to 0 and the slack variables to b,
+    #at least if b is non-negative
+    if GBTools.ends_with_slacks(A)
+        if any(b[i] < 0 for i in 1:m)
+            throw(ArgumentError("Cannot guess initial solution for this instance"))
+        end
+        solution[(n-m+1):n] = instance.b
+        return solution
+    end
+    #TODO: Generate initial solutions for assignment problems, binary knapsacks, etc
 end
 
 function extend_feasible_solution(instance :: IPInstance, solution :: Vector{Int})

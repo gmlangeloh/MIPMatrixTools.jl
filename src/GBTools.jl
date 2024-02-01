@@ -16,6 +16,17 @@ function has_slacks(A :: Matrix{Int}) :: Bool
     return all(found_slack)
 end
 
+function ends_with_slacks(A :: Matrix{Int}) :: Bool
+    m, n = size(A)
+    for i in 1:m
+        j = n - m + i
+        if A[i, j] == 1 && all(A[i, k] == 0 for k in (n - m + 1):n if k != j)
+            return true
+        end
+    end
+    return false
+end
+
 function isincluded(
     gb1 :: Vector{Vector{Int}},
     gb2 :: Vector{Vector{Int}}
