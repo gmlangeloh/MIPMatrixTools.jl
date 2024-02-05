@@ -228,6 +228,24 @@ function all_multiknapsacks(reps = 10)
     end
 end
 
+function all_binary_multiknapsacks(reps = 10)
+    ns = [10, 15, 20, 25, 30, 35, 40, 45, 50]
+    ms = [2, 3, 4, 5]
+    full_path = BASE_INSTANCE_DIR * "knapsack_binary_multidimensional"
+    if !isdir(full_path)
+        mkdir(full_path)
+    end
+    for n in ns
+        for m in ms
+            for rep in 1:reps
+                knapsack, _ = generate_knapsack(n, m, binary=true)
+                name = "knapsack_binary_multidimensional_" * string(n) * "_" * string(m) * "_" * string(rep) * ".mps"
+                write_to_file(knapsack, full_path * "/" * name)
+            end
+        end
+    end
+end
+
 function all_laps(reps = 10)
     ns = [5, 10, 15, 20]
     full_path = BASE_INSTANCE_DIR * "lap"

@@ -18,7 +18,8 @@ const AlgebraInt = AbstractAlgebra.Integers{Int}()
 function hnf_lattice_basis(A :: Matrix{Int})
     m, n = size(A)
     mat_A = matrix(AlgebraInt, transpose(A))
-    r = rank(mat_A)
+    #using AbstractAlgebra.rank here is a problem for some larger instances (overflow?)
+    r = LinearAlgebra.rank(A)
     #Transpose and append identity matrix, so that the lattice basis appears
     #as the last few rows / columns of the uhnf.
     tA = hcat(mat_A, identity_matrix(AlgebraInt, n))
