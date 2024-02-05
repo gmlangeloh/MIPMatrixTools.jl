@@ -262,43 +262,38 @@ function all_laps(reps = 10)
 end
 
 function all_set_covers(reps = 10)
-    ns = [5, 10, 15, 20]
-    ms = [3, 6, 9, 12]
-    ps = [0.05, 0.1, 0.2, 0.3]
+    nmps = [
+        (30, 15, 0.2), (30, 16, 0.2), (30, 17, 0.2), (30, 18, 0.2), (30, 19, 0.2), (30, 20, 0.2),
+        (35, 15, 0.2), (35, 16, 0.2), (35, 17, 0.2), (35, 18, 0.2), (35, 19, 0.2), (35, 20, 0.2),
+        (40, 15, 0.2), (40, 16, 0.2), (40, 17, 0.2), (40, 18, 0.2), (40, 19, 0.2), (40, 20, 0.2)
+    ]
     full_path = BASE_INSTANCE_DIR * "set_cover"
     if !isdir(full_path)
         mkdir(full_path)
     end
-    for n in ns
-        for m in ms
-            for p in ps
-                for rep in 1:reps
-                    cover, _ = generate_set_cover(n, m, p)
-                    name = "set_cover_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
-                    write_to_file(cover, BASE_INSTANCE_DIR * "set_cover" * "/" * name)
-                end
-            end
+    for (n, m, p) in nmps
+        for rep in 1:reps
+            cover, _ = generate_set_cover(n, m, p)
+            name = "set_cover_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
+            write_to_file(cover, BASE_INSTANCE_DIR * "set_cover" * "/" * name)
         end
     end
 end
 
 function all_set_packings(reps = 10)
-    ns = [5, 10, 15, 20]
-    ms = [3, 6, 9, 12]
-    ps = [0.05, 0.1, 0.2, 0.3]
+    nmps = [
+        (100, 25, 0.05), (100, 30, 0.05), (100, 35, 0.05), (100, 40, 0.05),
+        (150, 25, 0.05), (150, 30, 0.05)
+    ]
     full_path = BASE_INSTANCE_DIR * "set_packing"
     if !isdir(full_path)
         mkdir(full_path)
     end
-    for n in ns
-        for m in ms
-            for p in ps
-                for rep in 1:reps
-                    packing = generate_set_packing(n, m, p)
-                    name = "set_packing_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
-                    write_to_file(packing, BASE_INSTANCE_DIR * "set_packing" * "/" * name)
-                end
-            end
+    for (n, m, p) in nmps
+        for rep in 1:reps
+            packing = generate_set_packing(n, m, p)
+            name = "set_packing_" * string(n) * "_" * string(m) * "_" * string(p) * "_" * string(rep) * ".mps"
+            write_to_file(packing, BASE_INSTANCE_DIR * "set_packing" * "/" * name)
         end
     end
 end
