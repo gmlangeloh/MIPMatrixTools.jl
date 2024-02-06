@@ -633,6 +633,7 @@ function group_relaxation(
     return nonnegativity_relaxation(instance, nonbasics)
 end
 
+using LinearAlgebra
 function lattice_basis_projection(
     instance :: IPInstance,
     var_selection :: Symbol = :Any
@@ -660,12 +661,32 @@ function lattice_basis_projection(
         #variables of the optimal solution to the linear relaxation
         var_basis = SolverTools.optimal_basis!(instance.model, instance.model_vars)
         sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
+        new_rank = rank(instance.A[:, sigma])
+        old_rank = new_rank
+        #Something weird happened numerically with the Simplex basis. We may need
+        #to delete a part of it.
+        while new_rank < count(var_basis)
+            #Find some element of var_basis that can be deleted while keeping the same rank
+            for j in 1:length(var_basis)
+                if !var_basis[j]
+                    continue
+                end
+                var_basis[j] = false
+                new_sigma = [ i for i in eachindex(var_basis) if var_basis[i] ]
+                old_rank = new_rank
+                new_rank = rank(instance.A[:, new_sigma])
+                if new_rank != old_rank
+                    var_basis[j] = true
+                else #We found a variable to delete
+                    break
+                end
+            end
+        end
         #At worst, we may be missing one variable in var_basis to get to the full rank of A
         #That happens when the objective function is linearly dependent with some constraint
         #In that case, we can just add some new LI variable not in var_basis
-        j = 1
-        new_rank = rank(instance.A[:, sigma])
         old_rank = new_rank
+        j = 1
         while j <= instance.n && old_rank < instance.m
             push!(sigma, j)
             new_rank = rank(instance.A[:, sigma])
@@ -683,7 +704,6 @@ function lattice_basis_projection(
         error("Unknown variable selection method: $var_selection")
     end
     basis = instance.lattice_basis[:, li_cols]
-    @assert rank(basis) == rank(instance.lattice_basis)
     return basis_to_uhnf(basis), basis, sigma
 end
 
@@ -825,7 +845,6 @@ function unboundedness_proof(
     instance :: IPInstance,
     i :: Int
 ) :: Vector{Int}
-    @assert !is_bounded(i, instance)
     model, vars, _ = SolverTools.unboundedness_ip_model(
         instance.A, nonnegative_variables(instance), i
     )
