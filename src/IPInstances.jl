@@ -707,9 +707,9 @@ function lattice_basis_projection(
     return basis_to_uhnf(basis), basis, sigma
 end
 
-function linear_relaxation_status(instance :: IPInstance)
+function linear_relaxation(instance :: IPInstance)
     optimize!(instance.model)
-    write_to_file(instance.model, "model.mps")
+    return objective_value(instance.model)
 end
 
 function truncation_weight(
