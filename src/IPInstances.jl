@@ -1,6 +1,6 @@
 module IPInstances
 
-export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, truncation_weight, projection, project_vector, unbounded_variables, is_feasible_solution, add_constraint, lattice_basis_projection,
+export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, truncation_weight, projection, project_vector, unbounded_variables, is_feasible_solution, add_constraint, lattice_basis_projection, in_kernel,
 apply_permutation
 export has_slacks, nonnegative_data_only
 
@@ -207,6 +207,14 @@ function Base.show(io::IO, instance::IPInstance)
     end
     final = obj * constr * bounds
     print(io, final)
+end
+
+function in_kernel(v :: Vector{Int}, instance :: IPInstance)
+    return iszero(instance.A * v)
+end
+
+function in_kernel(vs :: Vector{Vector{Int}}, instance :: IPInstance)
+    return all(v -> in_kernel(v, instance), vs)
 end
 
 """
