@@ -12,6 +12,29 @@ using MIPMatrixTools
 const LP_SOLVER = Clp
 const GENERAL_SOLVER = CPLEX
 
+function cone_element(
+    rays :: Vector{Vector{T}}
+) :: Vector{Float64} where {T <: Real}
+    if isempty(rays)
+        return Float64[]
+    end
+    n = length(rays[1])
+    model = Model(GENERAL_SOLVER.Optimizer)
+    @variable(model, x[1:n] >= 0)
+    for ray in rays
+        @constraint(model, ray' * x >= 0)
+    end
+    @constraint(model, sum(x) == 1)
+    @objective(model, Min, sum(x))
+    set_silent(model)
+    optimize!(model)
+    if termination_status(model) == MOI.OPTIMAL
+        return value.(x)
+    end
+    #The cone is empty
+    return Float64[]
+end
+
 """
     optimal_basis!(model :: JuMP.Model) :: Vector{Bool}
 
