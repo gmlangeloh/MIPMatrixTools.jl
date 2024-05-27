@@ -459,7 +459,7 @@ end
     Return the optimal solution to this IPInstance. This solution is computed
     using a traditional IP solver.
 """
-function solve(instance :: IPInstance) :: Tuple{Vector{Int}, Int}
+function solve(instance :: IPInstance) :: Tuple{Vector{Int}, Int, TerminationStatusCode}
     return SolverTools.solve(
         instance.A, instance.b, instance.C, instance.u,
         nonnegative_variables(instance), Int

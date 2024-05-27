@@ -228,10 +228,12 @@ function solve(
     u::Vector{<: Union{Int, Nothing}},
     nonnegative::Vector{Bool},
     var_type::DataType
-):: Tuple{Vector{Int}, Int}
+):: Tuple{Vector{Int}, Int, TerminationStatusCode}
     model, x, _ = jump_model(A, b, C, u, nonnegative, var_type)
     optimize!(model)
-    return round.(Int, value.(x)), round(Int, objective_value(model))
+    solution = round.(Int, value.(x))
+    val = round(Int, objective_value(model))
+    return solution, val, termination_status(model)
 end
 
 """
