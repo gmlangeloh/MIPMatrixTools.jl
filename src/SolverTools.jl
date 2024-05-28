@@ -231,6 +231,9 @@ function solve(
 ):: Tuple{Vector{Int}, Int, TerminationStatusCode}
     model, x, _ = jump_model(A, b, C, u, nonnegative, var_type)
     optimize!(model)
+    if !has_values(model)
+        return zeros(Int, length(x)), 0, termination_status(model)
+    end
     solution = round.(Int, value.(x))
     val = round(Int, objective_value(model))
     return solution, val, termination_status(model)

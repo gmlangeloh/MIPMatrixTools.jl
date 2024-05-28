@@ -578,8 +578,31 @@ function nonnegativity_relaxation(
     instance :: IPInstance,
     nonnegative :: Vector{Bool}
 ) :: IPInstance
+    # Update the objective function as well.
+    # For the definition, see Thomas - The Structure of Group Relaxations
+    #If we are relaxing a full rank set of non-negative variables, we can
+    #update the objective function. Otherwise, we are in a strictly extended
+    #group relaxation, and we can keep the objective function of the previous
+    #relaxation.
+    new_C = instance.C
+    if length(nonnegative) - count(nonnegative) == instance.m
+        relaxed = [!nonnegative[i] for i in 1:instance.n]
+        inv_As = inv(instance.A[:, relaxed])
+        Ans = instance.A[:, nonnegative]
+        cs = instance.C[1, relaxed]
+        cns = instance.C[1, nonnegative]
+        new_obj = cns' - cs' * inv_As * Ans
+        new_C = zeros(Float64, size(instance.C))
+        j = 1
+        for i in 1:length(nonnegative)
+            if nonnegative[i]
+                new_C[1, i] = new_obj[j]
+                j += 1
+            end
+        end
+    end
     return IPInstance(
-        instance.A, instance.b, instance.C, instance.u, nonnegative,
+        instance.A, instance.b, new_C, instance.u, nonnegative,
         apply_normalization=false,
         invert_objective=false
     )
