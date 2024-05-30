@@ -12,6 +12,15 @@ using MIPMatrixTools
 const LP_SOLVER = Clp
 const GENERAL_SOLVER = CPLEX
 
+"""
+    cone_element(
+    rays :: Vector{Vector{T}}
+) :: Vector{Float64} where {T <: Real}
+
+Return a point in the cone spanned by the rays in `rays` if it exists.
+
+The point is computed via linear programming.
+"""
 function cone_element(
     rays :: Vector{Vector{T}}
 ) :: Vector{Float64} where {T <: Real}
@@ -416,6 +425,18 @@ function is_bounded(
         return false
     end
     return true
+end
+
+function is_bounded_polyhedron(
+    A :: Matrix{Int}
+) :: Bool
+    m, n = size(A)
+    model = Model(GENERAL_SOLVER.Optimizer)
+    set_silent(model)
+    @variable(model, x[1:n] >= 0)
+    @constraint(model, A * x == zeros(Int, m))
+    optimize!(model)
+    return termination_status(model) == MOI.OPTIMAL
 end
 
 """
