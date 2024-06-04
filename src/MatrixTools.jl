@@ -1,12 +1,16 @@
 module MatrixTools
 
-export hnf_lattice_basis, fiber_solution, normalize_hnf!, basis_to_uhnf, lift_vector
+export hnf_lattice_basis, solve, normalize_hnf!, basis_to_uhnf, lift_vector
 export li_rows
 
 using AbstractAlgebra
 using LinearAlgebra
 
 const AlgebraInt = AbstractAlgebra.Integers{Int}()
+
+function is_int64(x)
+    return all(xi <= typemax(Int64) && xi >= typemin(Int64) for xi in x)
+end
 
 """
     hnf_lattice_basis(A :: Matrix{Int})
@@ -17,35 +21,43 @@ const AlgebraInt = AbstractAlgebra.Integers{Int}()
 """
 function hnf_lattice_basis(A :: Matrix{Int})
     m, n = size(A)
-    mat_A = matrix(AlgebraInt, transpose(A))
+    mat_A = matrix(ZZ, transpose(A))
     #using AbstractAlgebra.rank here is a problem for some larger instances (overflow?)
     r = LinearAlgebra.rank(A)
     #Transpose and append identity matrix, so that the lattice basis appears
     #as the last few rows / columns of the uhnf.
-    tA = hcat(mat_A, identity_matrix(AlgebraInt, n))
+    tA = hcat(mat_A, identity_matrix(ZZ, n))
     #tA is a n x (m + n) matrix.
     #hnf_cohen is often slightly faster than hnf
     I = identity_matrix(tA, n)
     #Even though there are apparently no guarantees, running hnf_kb! over 64-bit
     #ints does work. Running hnf_cohen! here instead doesn't, though.
     AbstractAlgebra.hnf_kb!(tA, I)
+    if !is_int64(tA)
+        error("HNF is not 64-bit integer")
+    end
+    int_tA = Int.(tA)
     #The basis is in the last few rows and columns of H
-    basis = tA[(r+1):n, (m+1):(n+m)]
+    basis = int_tA[(r+1):n, (m+1):(n+m)]
     return basis, r #Row basis of the lattice
 end
 
 """
-    fiber_solution(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
+    solve(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
 
     A solution to Ax = b, that is, an element of the fiber of right-hand side
     `b` in the lattice ker(A).
 """
-function fiber_solution(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
+function solve(A :: Matrix{Int}, b :: Vector{Int}) :: Vector{Int}
     m, n = size(A)
-    mat_A = matrix(AlgebraInt, A)
-    mat_b = matrix(AlgebraInt, m, 1, b)
+    mat_A = matrix(ZZ, A)
+    mat_b = matrix(ZZ, m, 1, b)
     x = AbstractAlgebra.solve(mat_A, mat_b)
-    return Int.(reshape(Array(x), n))
+    if !is_int64(x)
+        error("Solution is not 64-bit integer")
+    end
+    int_x = Int.(x)
+    return Int.(reshape(Array(int_x), n))
 end
 
 """

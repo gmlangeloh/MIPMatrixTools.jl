@@ -1,10 +1,10 @@
 module IPInstances
 
 export IPInstance, nonnegative_vars, is_bounded, unboundedness_proof, update_objective!, nonnegativity_relaxation, group_relaxation, truncation_weight, projection, project_vector, unbounded_variables, is_feasible_solution, add_constraint, lattice_basis_projection, in_kernel,
-apply_permutation
+apply_permutation, fiber_solution, lattice_basis
 export has_slacks, nonnegative_data_only
 
-import LinearAlgebra: I
+using LinearAlgebra
 
 #TODO: Finish removing dependency on AbstractAlgebra. Use only MatrixTools
 using AbstractAlgebra
@@ -94,7 +94,7 @@ x in ZZ^n
 The instance is stored in normalized form, with permuted variables so that
 the variables appear in the following order: bounded, non-negative but unbounded, unrestricted.
 """
-struct IPInstance
+mutable struct IPInstance
     #Problem data
     A :: Array{Int, 2}
     b :: Vector{Int}
@@ -125,6 +125,7 @@ struct IPInstance
     lattice_basis :: Generic.MatSpaceElem{Int} #Row basis
     rank :: Int
     fiber_solution :: Vector{Int} #v such that Av = b. Not necessarily non-negative.
+    computed_lattice_info :: Bool
     originally_bounded :: Vector{Bool}
 
     #TODO: put a parameter to determine whether it is minimization or not
@@ -174,15 +175,16 @@ struct IPInstance
         @assert SolverTools.is_feasible(model)
         #Compute boundedness of variables using the model
         SolverTools.set_jump_objective!(model, :Min, C[1, :])
-        #Compute lattice information
-        basis, rnk = hnf_lattice_basis(A)
-        fiber_sol = fiber_solution(A, b)
+        #Initialize lattice data as empty
+        basis = AbstractAlgebra.matrix(MatrixTools.AlgebraInt, zeros(Int, m, n))
+        rnk = 0
+        fiber_sol = Int[]
         #Create the normalized instance
         new(A, b, C, u,
             bounded_end, nonnegative_end, permutation, inverse_perm,
             binaries, m, n, new_m, new_n, true,
             model, model_vars, model_cons,
-            basis, rnk, fiber_sol, bounded
+            basis, rnk, fiber_sol, false, bounded
         )
     end
 end
@@ -255,6 +257,28 @@ function extract_constraint(
         error("Unknown JuMP RHS type: ", typeof(rhs_data))
     end
     return a, b
+end
+
+function compute_lattice_info!(instance :: IPInstance)
+    if instance.computed_lattice_info
+        return
+    end
+    basis, rnk = hnf_lattice_basis(instance.A)
+    fiber_sol = MatrixTools.solve(instance.A, instance.b)
+    instance.lattice_basis = basis
+    instance.rank = rnk
+    instance.fiber_solution = fiber_sol
+    instance.computed_lattice_info = true
+end
+
+function fiber_solution(instance :: IPInstance)
+    compute_lattice_info!(instance)
+    return instance.fiber_solution
+end
+
+function lattice_basis(instance :: IPInstance)
+    compute_lattice_info!(instance)
+    return instance.lattice_basis
 end
 
 """
@@ -664,7 +688,6 @@ function group_relaxation(
     return nonnegativity_relaxation(instance, nonbasics)
 end
 
-using LinearAlgebra
 function lattice_basis_projection(
     instance :: IPInstance,
     var_selection :: Symbol = :Any
@@ -674,7 +697,7 @@ function lattice_basis_projection(
         sigma = Int[] #Complement of li_cols
         #Greedy approach: pick a column and then check for linear independence.
         #For simplicity, I can check this by looking at whether the rank increased
-        L = instance.lattice_basis
+        L = lattice_basis(instance)
         j = 1
         while j <= instance.n
             push!(li_cols, j)
@@ -734,7 +757,7 @@ function lattice_basis_projection(
     else
         error("Unknown variable selection method: $var_selection")
     end
-    basis = instance.lattice_basis[:, li_cols]
+    basis = lattice_basis(instance)[:, li_cols]
     return basis_to_uhnf(basis), basis, sigma
 end
 
@@ -746,8 +769,8 @@ end
 function truncation_weight(
     instance :: IPInstance
 ) :: Tuple{Vector{Float64}, Float64}
-    A = Array(Int.(instance.lattice_basis))
-    b = instance.fiber_solution
+    A = Array(Int.(lattice_basis(instance)))
+    b = fiber_solution(instance)
     unbounded = map(x -> !x, instance.originally_bounded)
     return SolverTools.optimal_weight_vector(A, b, unbounded)
 end
@@ -779,8 +802,8 @@ function update_objective!(
     #1. c[sigma] == 0 and
     #2. c' * u == -u[i] for all u in the lattice basis
     @assert iszero(c[sigma])
-    for i in 1:size(instance.lattice_basis, 1)
-        u = reshape(Array(instance.lattice_basis[i, :]), instance.n)
+    for i in 1:size(lattice_basis(instance), 1)
+        u = reshape(Array(lattice_basis(instance)[i, :]), instance.n)
         @assert abs(c' * u + u[j]) < 1e-6
     end
     #Update the LP model as well
